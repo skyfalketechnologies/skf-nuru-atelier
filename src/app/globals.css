@@ -47,3 +47,116 @@ button {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
 }
+
+.luxury-hero {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(197, 164, 109, 0.16), transparent 36%),
+    radial-gradient(circle at 88% 24%, rgba(197, 164, 109, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+}
+
+.section-title {
+  font-family: var(--font-cormorant-garamond), serif;
+  letter-spacing: 0.02em;
+}
+
+.editorial-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.marquee-fade {
+  overflow: hidden;
+  position: relative;
+}
+
+.marquee-fade::before,
+.marquee-fade::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.marquee-fade::before {
+  left: 0;
+  background: linear-gradient(to right, var(--background), transparent);
+}
+
+.marquee-fade::after {
+  right: 0;
+  background: linear-gradient(to left, var(--background), transparent);
+}
+
+.marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  width: max-content;
+  animation: marquee-scroll 24s linear infinite;
+}
+
+.hero-slider-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 300%;
+  animation: hero-slide-left 18s ease-in-out infinite;
+}
+
+.hero-slide {
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.55));
+}
+
+.marquee-logo {
+  width: 170px;
+  height: 56px;
+  object-fit: contain;
+  object-position: center;
+  filter: grayscale(1) brightness(1.15);
+  opacity: 0.95;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes hero-slide-left {
+  0%,
+  28% {
+    transform: translateX(0);
+  }
+  33%,
+  61% {
+    transform: translateX(-33.333%);
+  }
+  66%,
+  94% {
+    transform: translateX(-66.666%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 768px) {
+  .editorial-grid {
+    grid-template-columns: 1.3fr 1fr;
+  }
+}
