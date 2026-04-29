@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #090909;
+  --foreground: #efe8d8;
+  --surface: #121212;
+  --gold: #c5a46d;
+  --muted: #b3ab9d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-gold: var(--gold);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+a,
+button {
+  transition: all 200ms ease;
+}
+
+.luxury-card {
+  border: 1px solid rgba(197, 164, 109, 0.22);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.015) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  backdrop-filter: blur(4px);
+}
+
+.gold-border {
+  border: 1px solid rgba(197, 164, 109, 0.45);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+}
