@@ -11,6 +11,9 @@ export type BlogPost = {
   content: string[];
 };
 
+export const blogCategories = ["Fragrance", "Skincare", "Gifting", "Lifestyle"] as const;
+export type BlogCategory = (typeof blogCategories)[number];
+
 export const blogPosts: BlogPost[] = [
   {
     slug: "how-to-choose-a-signature-fragrance",
@@ -102,4 +105,29 @@ export function getAllBlogPosts(): BlogPost[] {
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
   return blogPosts.find((post) => post.slug === slug);
+}
+
+export function categoryToSlug(category: BlogCategory): string {
+  return category.toLowerCase();
+}
+
+export function slugToCategory(slug: string): BlogCategory | undefined {
+  return blogCategories.find((category) => categoryToSlug(category) === slug.toLowerCase());
+}
+
+export function getBlogPostsByCategory(category: BlogCategory): BlogPost[] {
+  return getAllBlogPosts().filter((post) => post.category === category);
+}
+
+export function searchBlogPosts(term: string): BlogPost[] {
+  const normalizedTerm = term.trim().toLowerCase();
+  if (!normalizedTerm) return getAllBlogPosts();
+
+  return getAllBlogPosts().filter((post) => {
+    return (
+      post.title.toLowerCase().includes(normalizedTerm) ||
+      post.excerpt.toLowerCase().includes(normalizedTerm) ||
+      post.content.some((paragraph) => paragraph.toLowerCase().includes(normalizedTerm))
+    );
+  });
 }

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getAllBlogPosts } from "@/lib/blog";
+import { blogCategories, categoryToSlug, getAllBlogPosts } from "@/lib/blog";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://nuruatelier.com";
@@ -24,6 +24,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...blogPages];
+  const blogCategoryPages = blogCategories.map((category) => ({
+    url: `${base}/blog/category/${categoryToSlug(category)}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticPages, ...blogPages, ...blogCategoryPages];
 }
 

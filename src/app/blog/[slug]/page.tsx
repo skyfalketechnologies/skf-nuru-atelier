@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getAllBlogPosts, getBlogPostBySlug } from "@/lib/blog";
+import { categoryToSlug, getAllBlogPosts, getBlogPostBySlug } from "@/lib/blog";
 
 type BlogPostPageProps = {
   params: Promise<{ slug: string }>;
@@ -54,7 +54,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
       <article className="space-y-6">
         <header className="space-y-3">
-          <p className="text-xs tracking-[0.22em] text-gold">{post.category.toUpperCase()}</p>
+          <Link
+            href={`/blog/category/${categoryToSlug(post.category)}`}
+            className="inline-flex text-xs tracking-[0.22em] text-gold hover:text-foreground"
+          >
+            {post.category.toUpperCase()}
+          </Link>
           <h1 className="section-title text-4xl leading-tight sm:text-5xl">{post.title}</h1>
           <p className="text-sm text-muted">
             By {post.author} ·{" "}
