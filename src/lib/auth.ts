@@ -1,4 +1,5 @@
 const TOKEN_KEY = "nuru_admin_token";
+const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "STAFF"]);
 
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -13,5 +14,10 @@ export function setAuthToken(token: string) {
 export function clearAuthToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
+}
+
+export function isAdminRole(role: string | undefined | null): boolean {
+  if (!role) return false;
+  return ADMIN_ROLES.has(role);
 }
 

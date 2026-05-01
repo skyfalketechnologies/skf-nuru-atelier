@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { blogCategories, categoryToSlug, getAllBlogPosts } from "@/lib/blog";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://nuruatelier.com";
   const staticPages = [
     "",
@@ -18,7 +18,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "" ? 1 : 0.7,
   }));
 
-  const blogPages = getAllBlogPosts().map((post) => ({
+  const blogPosts = await getAllBlogPosts().catch(() => []);
+  const blogPages = blogPosts.map((post) => ({
     url: `${base}/blog/${post.slug}`,
     changeFrequency: "monthly" as const,
     priority: 0.6,

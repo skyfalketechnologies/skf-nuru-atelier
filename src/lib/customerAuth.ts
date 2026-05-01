@@ -6,6 +6,10 @@ export type CustomerProfile = {
   id: string;
   email: string;
   name?: string;
+  phone?: string;
+  city?: string;
+  area?: string;
+  addressLine?: string;
   role: string;
 };
 

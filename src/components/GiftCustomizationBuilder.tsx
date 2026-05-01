@@ -1,7 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { addToCart } from "@/lib/cart";
+import { writeGiftCustomizationDraft } from "@/lib/giftCustomization";
 
 type PackagingOption = {
   _id: string;
@@ -188,6 +190,7 @@ const forHimCareOptions: BodyCareType[] = [
 ];
 
 export default function GiftCustomizationBuilder({ packagingOptions }: { packagingOptions: PackagingOption[] }) {
+  const router = useRouter();
   const [recipient, setRecipient] = useState<RecipientProfile>("for_her");
   const [selectedGifts, setSelectedGifts] = useState<string[]>([]);
   const [selectedGiftOptions, setSelectedGiftOptions] = useState<Record<string, string>>({});
@@ -259,6 +262,36 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
 
   function setBodyCareItem(typeId: string, itemId: string) {
     setSelectedBodyCareItems((prev) => ({ ...prev, [typeId]: itemId }));
+  }
+
+  function proceedToCart() {
+    const selectedGiftCount = selectedGifts.length;
+    const selectedCareCount = selectedBodyCareTypes.length;
+    const hasConfiguredItems = selectedGiftCount > 0 || selectedCareCount > 0 || (selectedPackaging?.extraCostKes ?? 0) > 0;
+
+    if (hasConfiguredItems) {
+      const packageName = `Custom Gift Package (${recipient === "for_her" ? "For Her" : "For Him"})`;
+      const packageId = [
+        "gift-custom",
+        recipient,
+        selectedPackagingCode || "standard",
+        selectedGifts.slice().sort().join("-") || "no-gifts",
+        selectedBodyCareTypes.slice().sort().join("-") || "no-care",
+      ].join(":");
+
+      addToCart({
+        productId: packageId,
+        name: packageName,
+        priceKes: Math.max(0, totalKes),
+        quantity: 1,
+      });
+    }
+
+    writeGiftCustomizationDraft({
+      packagingStyle: selectedPackagingCode,
+      message,
+    });
+    router.push("/cart");
   }
 
   return (
@@ -474,12 +507,13 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
             <span>Total</span>
             <span className="text-gold">Ksh {totalKes.toLocaleString()}</span>
           </div>
-          <Link
-            href="/cart"
+          <button
+            type="button"
+            onClick={proceedToCart}
             className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-gold px-5 py-3 text-sm font-medium text-black hover:opacity-90"
           >
             Proceed to Cart
-          </Link>
+          </button>
         </div>
       </aside>
     </section>

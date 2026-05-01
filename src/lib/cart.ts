@@ -6,13 +6,35 @@ export interface CartItem {
 }
 
 const CART_KEY = "nuru_cart";
+const CART_BACKUP_KEY = "nuru_cart_backup";
 export const CART_UPDATED_EVENT = "nuru:cart-updated";
+
+function sanitizeCartValue(input: unknown): CartItem[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((item) => ({
+      productId: typeof item?.productId === "string" ? item.productId : "",
+      name: typeof item?.name === "string" ? item.name : "Item",
+      priceKes: Number(item?.priceKes),
+      quantity: Math.max(0, Math.floor(Number(item?.quantity))),
+    }))
+    .filter((item) => item.productId && Number.isFinite(item.priceKes) && item.priceKes >= 0 && item.quantity > 0);
+}
 
 export function readCart(): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(CART_KEY);
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+    if (!raw) return [];
+    const parsed = sanitizeCartValue(JSON.parse(raw));
+    if (parsed.length > 0) return parsed;
+  } catch {
+    // fallback to backup store below
+  }
+  try {
+    const backupRaw = sessionStorage.getItem(CART_BACKUP_KEY);
+    if (!backupRaw) return [];
+    return sanitizeCartValue(JSON.parse(backupRaw));
   } catch {
     return [];
   }
@@ -20,7 +42,10 @@ export function readCart(): CartItem[] {
 
 export function writeCart(items: CartItem[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(CART_KEY, JSON.stringify(items));
+  const sanitized = sanitizeCartValue(items);
+  const serialized = JSON.stringify(sanitized);
+  localStorage.setItem(CART_KEY, serialized);
+  sessionStorage.setItem(CART_BACKUP_KEY, serialized);
   window.dispatchEvent(new Event(CART_UPDATED_EVENT));
 }
 

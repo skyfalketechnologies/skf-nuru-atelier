@@ -65,7 +65,7 @@ export default async function Home() {
       location: "Kisumu",
     },
   ];
-  const latestPosts = getAllBlogPosts().slice(0, 3);
+  const latestPosts = (await getAllBlogPosts().catch(() => [])).slice(0, 3);
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-12 px-4 py-10 sm:px-6 sm:py-14">

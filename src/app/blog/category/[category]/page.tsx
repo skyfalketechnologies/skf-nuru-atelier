@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import {
   blogCategories,
   categoryToSlug,
-  getBlogPostsByCategory,
+  fetchBlogPosts,
   slugToCategory,
 } from "@/lib/blog";
 
@@ -45,10 +45,15 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
   const parsedCategory = slugToCategory(category);
   if (!parsedCategory) notFound();
 
-  const posts = getBlogPostsByCategory(parsedCategory);
-  const totalPages = Math.max(1, Math.ceil(posts.length / pageSize));
+  const listing = await fetchBlogPosts({
+    category: parsedCategory,
+    page: currentPage,
+    limit: pageSize,
+  });
+  const posts = listing.posts;
+  const totalPages = Math.max(1, listing.pagination.totalPages);
   const safePage = Math.min(currentPage, totalPages);
-  const paginatedPosts = posts.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const paginatedPosts = posts;
 
   const buildCategoryPageHref = (targetPage: number) => {
     if (targetPage <= 1) return `/blog/category/${categoryToSlug(parsedCategory)}`;
@@ -102,7 +107,7 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
           </article>
           ))}
         </div>
-        {posts.length > pageSize ? (
+        {totalPages > 1 ? (
           <div className="flex items-center justify-center gap-2 pt-2">
             {safePage > 1 ? (
               <Link

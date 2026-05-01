@@ -39,6 +39,41 @@ button {
   backdrop-filter: blur(4px);
 }
 
+.admin-shell {
+  --admin-bg: #06090f;
+  --admin-surface: #0e1522;
+  --admin-surface-soft: #111a2a;
+  --admin-border: rgba(148, 163, 184, 0.22);
+  --admin-text: #e2e8f0;
+  --admin-muted: #9aa8bd;
+  --admin-accent: #60a5fa;
+  --gold: #60a5fa;
+  --muted: #9aa8bd;
+  --foreground: #e2e8f0;
+  --background: #06090f;
+  background:
+    radial-gradient(circle at 6% 0%, rgba(96, 165, 250, 0.15), transparent 32%),
+    radial-gradient(circle at 94% 12%, rgba(45, 212, 191, 0.08), transparent 28%),
+    var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.admin-shell .luxury-card {
+  border: 1px solid var(--admin-border);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+  backdrop-filter: blur(7px);
+}
+
+.admin-shell select {
+  color: #e2e8f0;
+  background-color: #111827;
+}
+
+.admin-shell select option {
+  color: #e2e8f0;
+  background-color: #111827;
+}
+
 .gold-border {
   border: 1px solid rgba(197, 164, 109, 0.45);
 }
@@ -158,5 +193,53 @@ button {
 @media (min-width: 768px) {
   .editorial-grid {
     grid-template-columns: 1.3fr 1fr;
+  }
+}
+
+.print-receipt-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  .print-hide,
+  .admin-shell > aside,
+  .admin-shell header {
+    display: none !important;
+  }
+
+  .print-receipt-only {
+    display: block !important;
+  }
+
+  .print-receipt-card {
+    width: 72mm !important;
+    max-width: 72mm !important;
+    margin: 0 auto !important;
+    padding: 3mm !important;
+    border: 1px solid #d4d4d4 !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  .print-receipt-card * {
+    color: #111111 !important;
+  }
+
+  .print-receipt-card .font-serif {
+    font-size: 13px !important;
+    letter-spacing: 0.04em !important;
   }
 }

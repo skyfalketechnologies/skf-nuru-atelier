@@ -8,14 +8,15 @@ type BlogPostPageProps = {
 };
 
 export async function generateStaticParams() {
-  return getAllBlogPosts().map((post) => ({ slug: post.slug }));
+  const posts = await getAllBlogPosts();
+  return posts.map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getBlogPostBySlug(slug);
 
   if (!post) {
     return {
@@ -38,11 +39,12 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const post = await getBlogPostBySlug(slug);
 
   if (!post) notFound();
 
-  const relatedPosts = getAllBlogPosts()
+  const allPosts = await getAllBlogPosts();
+  const relatedPosts = allPosts
     .filter((item) => item.slug !== post.slug)
     .slice(0, 3);
 
@@ -79,8 +81,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         <div className="luxury-card rounded-2xl p-6 sm:p-8">
           <div className="space-y-5 text-sm leading-8 text-muted sm:text-base">
-            {post.content.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+            {post.content.map((paragraph, index) => (
+              <div
+                key={`${post.slug}-${index}`}
+                className="prose prose-invert max-w-none prose-p:my-4 prose-headings:text-gold prose-strong:text-foreground"
+                dangerouslySetInnerHTML={{ __html: paragraph }}
+              />
             ))}
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  CART_UPDATED_EVENT,
   clearCart,
   readCart,
   removeFromCart,
@@ -14,8 +15,13 @@ import {
   getCustomerToken,
   type CustomerProfile,
 } from "@/lib/customerAuth";
+import {
+  clearGiftCustomizationDraft,
+  readGiftCustomizationDraft,
+} from "@/lib/giftCustomization";
 
 export default function CartPage() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const [cart, setCart] = useState<CartItem[]>([]);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [token, setToken] = useState<string | null>(null);
@@ -30,11 +36,24 @@ export default function CartPage() {
   const [message, setMessage] = useState("");
   const [packagingStyle, setPackagingStyle] = useState("luxury_box");
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [retryingPayment, setRetryingPayment] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState("");
+  const [activeOrderReference, setActiveOrderReference] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<"pending" | "initiated" | "paid" | "failed">("pending");
+  const [receiptNumber, setReceiptNumber] = useState("");
+  const [importedGiftDetails, setImportedGiftDetails] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<string>("");
 
   useEffect(() => {
     setCart(readCart());
+    const giftDraft = readGiftCustomizationDraft();
+    if (giftDraft) {
+      setMessage(giftDraft.message || "");
+      setPackagingStyle(giftDraft.packagingStyle || "luxury_box");
+      setImportedGiftDetails(true);
+    }
     const savedToken = getCustomerToken();
     const savedCustomer = getCustomerProfile();
     if (savedToken && savedCustomer) {
@@ -44,13 +63,21 @@ export default function CartPage() {
       setFullName(savedCustomer.name ?? "");
       setStep(2);
     }
+
+    const onCartUpdate = () => setCart(readCart());
+    window.addEventListener("storage", onCartUpdate);
+    window.addEventListener(CART_UPDATED_EVENT, onCartUpdate);
+    return () => {
+      window.removeEventListener("storage", onCartUpdate);
+      window.removeEventListener(CART_UPDATED_EVENT, onCartUpdate);
+    };
   }, []);
 
   const subtotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.priceKes * item.quantity, 0),
     [cart]
   );
-  const deliveryFee = subtotal > 5000 ? 0 : 350;
+  const deliveryFee = 500;
   const total = subtotal + deliveryFee;
 
   function refreshCart() {
@@ -74,11 +101,86 @@ export default function CartPage() {
     setStep(1);
   }
 
+  async function initiatePaymentForOrder(orderLookup: string) {
+    const payRes = await fetch(`${apiUrl}/api/payments/mpesa/initiate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: orderLookup, phone }),
+    });
+    const payData = await payRes.json();
+    if (!payRes.ok || !payData.success) {
+      setPaymentStatus("failed");
+      setError(
+        payData.error ||
+          payData.instructions ||
+          "Order was created but M-Pesa prompt failed. Retry payment below."
+      );
+      setResult(`Order ${orderLookup} was created. Keep this order reference for support.`);
+      return false;
+    }
+    setPaymentStatus("initiated");
+    setResult(
+      `Order ${payData.orderReference || orderLookup} created. ${payData.instructions ?? "Proceed with M-Pesa payment."}${
+        payData.checkoutRequestId ? ` (Request: ${payData.checkoutRequestId})` : ""
+      }`
+    );
+    setError("");
+    clearCart();
+    clearGiftCustomizationDraft();
+    setImportedGiftDetails(false);
+    setCart([]);
+    return true;
+  }
+
+  async function checkPaymentStatus() {
+    const orderLookup = activeOrderReference || activeOrderId;
+    if (!orderLookup) return;
+    setCheckingPayment(true);
+    try {
+      const statusRes = await fetch(`${apiUrl}/api/payments/mpesa/status/${encodeURIComponent(orderLookup)}`);
+      const statusData = await statusRes.json();
+      if (!statusRes.ok) {
+        setError(statusData.error || "Could not check payment status.");
+        return;
+      }
+      if (statusData.orderReference) {
+        setActiveOrderReference(statusData.orderReference);
+      }
+      setPaymentStatus(statusData.paymentStatus || "pending");
+      if (statusData.receiptNumber) {
+        setReceiptNumber(statusData.receiptNumber);
+      }
+      if (statusData.paymentStatus === "paid") {
+        setError("");
+        setResult(
+          `Payment confirmed for order ${statusData.orderReference || orderLookup}.${statusData.receiptNumber ? ` Receipt: ${statusData.receiptNumber}.` : ""}`
+        );
+      } else if (statusData.paymentStatus === "failed") {
+        setError(statusData.resultDesc || "Payment attempt failed. Retry STK push below.");
+      }
+    } catch {
+      setError("Could not check payment status.");
+    } finally {
+      setCheckingPayment(false);
+    }
+  }
+
+  async function retryStkPush() {
+    const orderLookup = activeOrderReference || activeOrderId;
+    if (!orderLookup) return;
+    setRetryingPayment(true);
+    try {
+      await initiatePaymentForOrder(orderLookup);
+    } finally {
+      setRetryingPayment(false);
+    }
+  }
+
   async function placeOrder() {
     setError("");
     setPlacingOrder(true);
     try {
-      const createRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/orders`, {
+      const createRes = await fetch(`${apiUrl}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -96,26 +198,24 @@ export default function CartPage() {
         setError(createData.error || "Order failed");
         return;
       }
-      const payRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/payments/mpesa/initiate`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: createData.order._id, phone }),
-        }
-      );
-      const payData = await payRes.json();
-      setResult(
-        `Order ${createData.order._id} created. ${payData.instructions ?? "Proceed with M-Pesa payment."}`
-      );
-      clearCart();
-      setCart([]);
+      setActiveOrderId(createData.order._id);
+      setActiveOrderReference(createData.orderReference || createData.order.publicOrderId || createData.order._id);
+      setReceiptNumber("");
+      await initiatePaymentForOrder(createData.orderReference || createData.order.publicOrderId || createData.order._id);
     } catch {
       setError("Checkout could not complete. Please try again.");
     } finally {
       setPlacingOrder(false);
     }
   }
+
+  useEffect(() => {
+    if (!activeOrderId || paymentStatus !== "initiated") return;
+    const intervalId = window.setInterval(() => {
+      void checkPaymentStatus();
+    }, 8000);
+    return () => window.clearInterval(intervalId);
+  }, [activeOrderId, paymentStatus]);
 
   const stepLabelClass = (target: number) =>
     `rounded-full px-3 py-1 text-xs ${
@@ -129,7 +229,7 @@ export default function CartPage() {
       <section className="mx-auto max-w-4xl px-4 py-14">
         <div className="luxury-card rounded-2xl p-8 text-center">
           <h1 className="section-title text-3xl text-gold sm:text-4xl">Your Cart Is Empty</h1>
-          <p className="mt-3 text-sm text-muted">Add luxury products to begin your checkout journey.</p>
+          <p className="mt-3 text-sm text-muted">Add products to your cart to begin your checkout journey.</p>
         </div>
       </section>
     );
@@ -190,6 +290,11 @@ export default function CartPage() {
                   </button>
                 ) : null}
               </div>
+              {importedGiftDetails ? (
+                <p className="mt-2 text-xs text-gold">
+                  Imported from Gift Customization. You can edit these details before placing order.
+                </p>
+              ) : null}
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <input
                   className="rounded border border-gold/40 bg-black p-3 text-sm"
@@ -272,6 +377,40 @@ export default function CartPage() {
               </button>
               {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
               {result ? <p className="mt-3 text-sm text-gold">{result}</p> : null}
+              {activeOrderId ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={checkPaymentStatus}
+                    disabled={checkingPayment}
+                    className="gold-border rounded-full px-4 py-2 text-xs text-gold disabled:opacity-60"
+                  >
+                    {checkingPayment ? "Checking..." : "Check Payment Status"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={retryStkPush}
+                    disabled={retryingPayment || !phone}
+                    className="gold-border rounded-full px-4 py-2 text-xs text-gold disabled:opacity-60"
+                  >
+                    {retryingPayment ? "Retrying..." : "Retry M-Pesa STK Push"}
+                  </button>
+                </div>
+              ) : null}
+              {activeOrderId ? (
+                <p className="mt-2 text-xs text-muted">
+                  Order Reference: {activeOrderReference || activeOrderId} | Payment: {paymentStatus}
+                  {receiptNumber ? ` | Receipt: ${receiptNumber}` : ""}
+                </p>
+              ) : null}
+              {activeOrderId ? (
+                <a
+                  href={`/track-order?orderId=${encodeURIComponent(activeOrderReference || activeOrderId)}`}
+                  className="mt-2 inline-block text-xs text-gold hover:underline"
+                >
+                  Track this order
+                </a>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -319,7 +458,7 @@ export default function CartPage() {
             </div>
             <div className="mt-2 flex items-center justify-between">
               <span className="text-muted">Delivery</span>
-              <span>{deliveryFee ? `Ksh ${deliveryFee.toLocaleString()}` : "Free"}</span>
+              <span>Ksh {deliveryFee.toLocaleString()}</span>
             </div>
             <div className="mt-3 flex items-center justify-between text-base">
               <span>Total</span>

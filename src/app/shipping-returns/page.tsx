@@ -15,8 +15,8 @@ export default function ShippingReturnsPage() {
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li>Nairobi: 1-2 business days.</li>
             <li>Outside Nairobi: 2-5 business days.</li>
-            <li>Delivery fee starts from Ksh 350.</li>
-            <li>Orders above Ksh 5,000 get free delivery.</li>
+            <li>Free delivery for orders above Ksh 7,000.</li>
+            <li>Delivery fee applies to all orders.</li>
           </ul>
         </article>
         <article className="luxury-card rounded-xl p-5">

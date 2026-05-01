@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import {
   blogCategories,
   categoryToSlug,
-  getAllBlogPosts,
-  searchBlogPosts,
+  fetchBlogPosts,
   slugToCategory,
 } from "@/lib/blog";
 
@@ -27,10 +26,13 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   const pageParam = typeof params.page === "string" ? Number(params.page) : 1;
   const currentPage = Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
 
-  let posts = searchTerm ? searchBlogPosts(searchTerm) : getAllBlogPosts();
-  if (selectedCategory) {
-    posts = posts.filter((post) => post.category === selectedCategory);
-  }
+  const listing = await fetchBlogPosts({
+    search: searchTerm || undefined,
+    category: selectedCategory,
+    page: 1,
+    limit: 50,
+  });
+  const posts = listing.posts;
 
   const featuredPost = currentPage === 1 ? posts[0] : undefined;
   const postsForGrid = currentPage === 1 ? posts.slice(1) : posts;
@@ -157,7 +159,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
             </article>
           ))}
         </div>
-        {postsForGrid.length > pageSize ? (
+        {totalPages > 1 ? (
           <div className="flex items-center justify-center gap-2 pt-2">
             {safePage > 1 ? (
               <Link
