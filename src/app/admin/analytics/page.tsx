@@ -65,7 +65,12 @@ export default function AdminAnalyticsPage() {
       {message && !loading ? (
         <div className="mt-2 flex items-center gap-3 text-sm text-muted">
           <span>{message}</span>
-          <button className="text-gold underline" onClick={loadAnalytics}>
+          <button
+            className="text-gold underline"
+            onClick={() => {
+              void loadAnalytics();
+            }}
+          >
             Retry
           </button>
         </div>

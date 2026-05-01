@@ -155,7 +155,12 @@ export default function AdminCatalogPage() {
       {message && !loading ? (
         <div className="mt-2 flex items-center gap-3 text-sm text-muted">
           <span>{message}</span>
-          <button className="text-gold underline" onClick={loadData}>
+          <button
+            className="text-gold underline"
+            onClick={() => {
+              void loadData();
+            }}
+          >
             Retry
           </button>
         </div>

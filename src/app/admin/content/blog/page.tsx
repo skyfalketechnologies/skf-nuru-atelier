@@ -109,7 +109,15 @@ export default function AdminBlogListPage() {
             <option value="all">All categories</option>
             {categories.map((category) => <option key={category} value={category}>{category}</option>)}
           </select>
-          <button type="button" onClick={loadBlogAdminData} className="rounded-full border border-gold/40 px-4 py-2 text-sm text-gold">Refresh</button>
+          <button
+            type="button"
+            onClick={() => {
+              void loadBlogAdminData();
+            }}
+            className="rounded-full border border-gold/40 px-4 py-2 text-sm text-gold"
+          >
+            Refresh
+          </button>
         </div>
         <div className="space-y-2">
           {loading ? <p className="text-sm text-muted">Loading posts...</p> : null}

@@ -123,7 +123,9 @@ export default function AdminMarketingPage() {
           </select>
           <button
             type="button"
-            onClick={loadSubscribers}
+            onClick={() => {
+              void loadSubscribers();
+            }}
             className="rounded-full border border-gold/40 px-4 py-2 text-sm text-gold"
           >
             Refresh

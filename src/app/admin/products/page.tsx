@@ -160,7 +160,9 @@ export default function AdminProductsPage() {
           </Link>
           <button
             type="button"
-            onClick={loadProducts}
+            onClick={() => {
+              void loadProducts();
+            }}
             className="rounded-full border border-gold/35 px-5 py-2 text-sm text-gold hover:bg-gold/10 disabled:opacity-50"
             disabled={loading}
           >
@@ -178,7 +180,9 @@ export default function AdminProductsPage() {
           <button
             type="button"
             className="shrink-0 rounded-full border border-red-300/50 px-4 py-2 text-sm text-red-100 hover:bg-red-500/10"
-            onClick={loadProducts}
+            onClick={() => {
+              void loadProducts();
+            }}
           >
             Retry
           </button>
