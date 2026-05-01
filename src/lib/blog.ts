@@ -36,9 +36,16 @@ export async function fetchBlogPosts(params: BlogListParams = {}): Promise<{
   if (params.limit) query.set("limit", String(params.limit));
   if (params.includeDrafts) query.set("includeDrafts", "true");
   const url = `${API_URL}/api/blog/posts${query.toString() ? `?${query.toString()}` : ""}`;
-  const response = await fetch(url, { next: { revalidate: 60 } });
-  if (!response.ok) throw new Error(`Blog API error: ${response.status}`);
-  return response.json();
+  try {
+    const response = await fetch(url, { next: { revalidate: 60 } });
+    if (!response.ok) throw new Error(`Blog API error: ${response.status}`);
+    return response.json();
+  } catch {
+    return {
+      posts: [],
+      pagination: { page: 1, limit: params.limit || 12, total: 0, totalPages: 1 },
+    };
+  }
 }
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
@@ -47,13 +54,17 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
-  const response = await fetch(`${API_URL}/api/blog/posts/${encodeURIComponent(slug)}`, {
-    next: { revalidate: 60 },
-  });
-  if (response.status === 404) return undefined;
-  if (!response.ok) throw new Error(`Blog API error: ${response.status}`);
-  const data = await response.json();
-  return data.post;
+  try {
+    const response = await fetch(`${API_URL}/api/blog/posts/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 60 },
+    });
+    if (response.status === 404) return undefined;
+    if (!response.ok) throw new Error(`Blog API error: ${response.status}`);
+    const data = await response.json();
+    return data.post;
+  } catch {
+    return undefined;
+  }
 }
 
 export function categoryToSlug(category: BlogCategory): string {

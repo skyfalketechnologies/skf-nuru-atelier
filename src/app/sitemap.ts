@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/admin",
   ].map((path) => ({
     url: `${base}${path}`,
-    changeFrequency: "weekly",
+    changeFrequency: "weekly" as const,
     priority: path === "" ? 1 : 0.7,
   }));
 

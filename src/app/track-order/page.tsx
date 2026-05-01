@@ -1,12 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { getQueryParam } from "@/lib/queryParams";
 
 type PaymentStatus = "pending" | "initiated" | "paid" | "failed";
 
 export default function TrackOrderPage() {
-  const searchParams = useSearchParams();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const [orderId, setOrderId] = useState("");
   const [phone, setPhone] = useState("");
@@ -18,14 +17,16 @@ export default function TrackOrderPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [hydratedFromQuery, setHydratedFromQuery] = useState(false);
 
   useEffect(() => {
-    const queryOrderId = searchParams.get("orderId");
-    const queryOrderRef = searchParams.get("orderRef");
+    if (hydratedFromQuery) return;
+    const queryOrderId = getQueryParam("orderId");
+    const queryOrderRef = getQueryParam("orderRef");
     const lookup = queryOrderRef || queryOrderId;
-    if (!lookup) return;
-    setOrderId((current) => current || lookup);
-  }, [searchParams]);
+    if (lookup) setOrderId((current) => current || lookup);
+    setHydratedFromQuery(true);
+  }, [hydratedFromQuery]);
 
   useEffect(() => {
     if (!orderId) return;

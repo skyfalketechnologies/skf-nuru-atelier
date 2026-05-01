@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPost } from "@/lib/api";
 import { setCustomerAuth, type CustomerProfile } from "@/lib/customerAuth";
+import { getQueryParam } from "@/lib/queryParams";
 
 export default function CustomerLoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,7 +24,7 @@ export default function CustomerLoginPage() {
         password,
       });
       setCustomerAuth(data.token, data.user);
-      router.push(searchParams.get("redirect") || "/cart");
+      router.push(getQueryParam("redirect") || "/cart");
     } catch {
       setError("Invalid login credentials.");
     } finally {
