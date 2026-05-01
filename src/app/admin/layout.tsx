@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminFullscreenLoader } from "@/components/admin/AdminLoader";
 import { apiGetAuth } from "@/lib/api";
 import { clearAuthToken, getAuthToken, isAdminRole } from "@/lib/auth";
 import { connectAdminRealtime, type RealtimeEvent } from "@/lib/realtime";
@@ -121,6 +122,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [nowMs, setNowMs] = useState(() => Date.now());
   const notificationsPanelRef = useRef<HTMLDivElement | null>(null);
   const isLogin = pathname === "/admin/login";
+  const isContentModule = pathname.startsWith("/admin/content");
   const activeModule = useMemo(
     () => adminModules.find((item) => isModuleActive(pathname, item.href)),
     [pathname]
@@ -218,11 +220,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (isLogin) return <>{children}</>;
   if (checkingSession) {
-    return (
-      <div className="min-h-screen px-4 py-10">
-        <p className="text-sm text-muted">Checking admin session...</p>
-      </div>
-    );
+    return <AdminFullscreenLoader />;
   }
   if (!isAuthorized) return null;
 
@@ -231,7 +229,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <AdminSidebar />
       <div className="md:pl-72">
         <header className="sticky top-0 z-40 border-b border-slate-500/30 bg-slate-950/85 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+          <div
+            className={`mx-auto flex items-center justify-between px-4 py-3 ${isContentModule ? "max-w-none" : "max-w-7xl"}`}
+          >
             <div className="hidden min-w-0 sm:block">
               <p className="truncate text-xs text-slate-300/90">
                 {activeModule ? activeModule.label : "Admin"}
@@ -330,7 +330,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <main
+          className={`mx-auto px-4 py-6 sm:px-6 ${isContentModule ? "max-w-none w-full" : "max-w-7xl"}`}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

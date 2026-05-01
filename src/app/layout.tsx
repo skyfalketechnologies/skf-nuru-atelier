@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
+import { FacebookPixel } from "@/components/FacebookPixel";
+import { FacebookPixelRouteTracker } from "@/components/FacebookPixelRouteTracker";
+import { GtmRouteChangeTracker } from "@/components/GtmRouteChangeTracker";
+import { GoogleTagManager } from "@/components/GoogleTagManager";
 import { SiteChrome } from "@/components/SiteChrome";
 
 const bodySans = Inter({
@@ -16,7 +20,7 @@ const headingSerif = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: {
-    default: "NURU ATELIER | by Skyfalke",
+    default: "NURU ATELIER",
     template: "%s | NURU ATELIER",
   },
   description:
@@ -46,6 +50,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bodySans.variable} ${headingSerif.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <GoogleTagManager />
+        <FacebookPixel />
+        <GtmRouteChangeTracker />
+        <FacebookPixelRouteTracker />
         <SiteChrome>{children}</SiteChrome>
       </body>
     </html>

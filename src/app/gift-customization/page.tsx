@@ -1,5 +1,5 @@
 import { apiGet } from "@/lib/api";
-import GiftCustomizationBuilder from "@/components/GiftCustomizationBuilder";
+import GiftCustomizationBuilder, { type GiftAtelierPublicConfig } from "@/components/GiftCustomizationBuilder";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -23,22 +23,20 @@ type GiftOption = {
   extraCostKes: number;
 };
 
+const EMPTY_CONFIG: GiftAtelierPublicConfig = {
+  forHer: { curated: [], bodyCare: [] },
+  forHim: { curated: [], bodyCare: [] },
+};
+
 export default async function GiftCustomizationPage() {
-  const data = await apiGet<{ giftOptions: GiftOption[] }>("/api/catalog/gift-options").catch(() => ({
-    giftOptions: [],
-  }));
-  const packagingOptions = data.giftOptions.some((option) => option.code === "nuru_atelier_bag")
-    ? data.giftOptions
-    : [
-        ...data.giftOptions,
-        {
-          _id: "nuru-atelier-bag",
-          name: "Nuru Atelier Bag",
-          code: "nuru_atelier_bag",
-          description: "Premium branded Nuru Atelier gift bag.",
-          extraCostKes:150,
-        },
-      ];
+  const [data, configRes] = await Promise.all([
+    apiGet<{ giftOptions: GiftOption[] }>("/api/catalog/gift-options").catch(() => ({ giftOptions: [] })),
+    apiGet<{ config: GiftAtelierPublicConfig }>("/api/catalog/gift-customization-config").catch(() => ({
+      config: EMPTY_CONFIG,
+    })),
+  ]);
+  const packagingOptions = data.giftOptions;
+  const config = configRes.config ?? EMPTY_CONFIG;
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-4 py-10">
@@ -50,7 +48,7 @@ export default async function GiftCustomizationPage() {
         </p>
       </section>
 
-      <GiftCustomizationBuilder packagingOptions={packagingOptions} />
+      <GiftCustomizationBuilder packagingOptions={packagingOptions} config={config} />
 
       <section className="luxury-card overflow-hidden rounded-2xl p-6 sm:p-8">
         <div className="grid gap-5 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">

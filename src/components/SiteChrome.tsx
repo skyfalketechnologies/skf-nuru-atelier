@@ -158,7 +158,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="border-t border-gold/20 py-4 text-center text-xs text-muted">
-          NURU ATELIER by Skyfalke. Thank you for shopping with us.
+        © {new Date().getFullYear()} Nuru Atelier (Skyfalke). All rights reserved.
         </div>
       </footer>
     </>

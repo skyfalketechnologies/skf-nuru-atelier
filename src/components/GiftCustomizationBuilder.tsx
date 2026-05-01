@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { addToCart } from "@/lib/cart";
+import { trackAddToCart } from "@/lib/gtm-ecommerce";
 import { writeGiftCustomizationDraft } from "@/lib/giftCustomization";
 
 type PackagingOption = {
@@ -36,160 +37,23 @@ type BodyCareType = {
   }[];
 };
 
-const curatedGifts: Record<RecipientProfile, CuratedGift[]> = {
-  for_her: [
-    {
-      id: "bouquet",
-      name: "Flower Bouquet",
-      description: "Premium seasonal bouquet.",
-      options: [
-        { id: "bouquet-classic", label: "Classic Bouquet", priceKes: 500 },
-        { id: "bouquet-signature", label: "Signature Bouquet", priceKes: 1500 },
-        { id: "bouquet-luxe", label: "Luxe Grand Bouquet", priceKes: 2800 },
-      ],
-    },
-    {
-      id: "chocolate",
-      name: "Artisan Chocolate Box",
-      description: "Luxury handcrafted chocolates.",
-      options: [
-        { id: "choco-small", label: "Small Box", priceKes: 700 },
-        { id: "choco-medium", label: "Medium Box", priceKes: 1300 },
-        { id: "choco-premium", label: "Premium Box", priceKes: 2200 },
-      ],
-    },
-    {
-      id: "scented-candle",
-      name: "Scented Candle",
-      description: "Soft amber signature candle.",
-      options: [
-        { id: "candle-mini", label: "Mini Candle", priceKes: 900 },
-        { id: "candle-standard", label: "Standard Candle", priceKes: 1600 },
-        { id: "candle-luxe", label: "Luxe Candle Set", priceKes: 2600 },
-      ],
-    },
-    {
-      id: "silk-note",
-      name: "Silk Gift Card",
-      description: "Personalized printed silk card.",
-      options: [
-        { id: "silk-note-standard", label: "Standard Print", priceKes: 400 },
-        { id: "silk-note-premium", label: "Premium Foil Print", priceKes: 900 },
-      ],
-    },
-  ],
-  for_him: [
-    {
-      id: "leather-wallet",
-      name: "Leather Wallet",
-      description: "Classic black leather wallet.",
-      options: [
-        { id: "wallet-classic", label: "Classic", priceKes: 2200 },
-        { id: "wallet-signature", label: "Signature", priceKes: 4200 },
-        { id: "wallet-luxe", label: "Luxe Edition", priceKes: 6200 },
-      ],
-    },
-    {
-      id: "grooming-kit",
-      name: "Grooming Kit",
-      description: "Premium men's grooming essentials.",
-      options: [
-        { id: "grooming-core", label: "Core Kit", priceKes: 1800 },
-        { id: "grooming-complete", label: "Complete Kit", priceKes: 3600 },
-        { id: "grooming-atelier", label: "Atelier Kit", priceKes: 5200 },
-      ],
-    },
-    {
-      id: "dark-chocolate",
-      name: "Dark Chocolate Collection",
-      description: "Rich cocoa gift box.",
-      options: [
-        { id: "dark-choco-small", label: "Small Box", priceKes: 600 },
-        { id: "dark-choco-medium", label: "Medium Box", priceKes: 1200 },
-        { id: "dark-choco-grand", label: "Grand Box", priceKes: 2000 },
-      ],
-    },
-    {
-      id: "signature-card",
-      name: "Signature Gift Card",
-      description: "Personalized premium card.",
-      options: [
-        { id: "card-standard", label: "Standard Card", priceKes: 300 },
-        { id: "card-signature", label: "Signature Card", priceKes: 900 },
-      ],
-    },
-  ],
+export type GiftAtelierPublicConfig = {
+  forHer: { curated: CuratedGift[]; bodyCare: BodyCareType[] };
+  forHim: { curated: CuratedGift[]; bodyCare: BodyCareType[] };
 };
 
-const forHerBodyCareOptions: BodyCareType[] = [
-  {
-    id: "perfume",
-    label: "Perfume",
-    items: [
-      { id: "michaels-50-white-1", label: "Michaels Perfume 50ml - White #1", priceKes: 3200 },
-      { id: "michaels-50-white-2", label: "Michaels Perfume 50ml - White #2", priceKes: 3200 },
-      { id: "michaels-50-pink-2", label: "Michaels Perfume 50ml - Pink #2", priceKes: 3400 },
-    ],
-  },
-  {
-    id: "lotion",
-    label: "Body Lotion",
-    items: [
-      { id: "ivory-silk-lotion", label: "Ivory Silk Lotion 250ml", priceKes: 1800 },
-      { id: "rose-velvet-lotion", label: "Rose Velvet Lotion 250ml", priceKes: 1900 },
-      { id: "amber-night-lotion", label: "Amber Night Lotion 250ml", priceKes: 2100 },
-    ],
-  },
-  {
-    id: "body-oil",
-    label: "Tissue Body Oil",
-    items: [
-      { id: "golden-argan-oil", label: "Golden Argan Tissue Oil 100ml", priceKes: 1600 },
-      { id: "noir-velvet-oil", label: "Noir Velvet Tissue Oil 100ml", priceKes: 1750 },
-    ],
-  },
-];
+function minOptionPrice(options: { priceKes: number }[]): number {
+  if (!options.length) return 0;
+  return Math.min(...options.map((o) => o.priceKes));
+}
 
-const forHimCareOptions: BodyCareType[] = [
-  {
-    id: "belt",
-    label: "Leather Belt",
-    items: [
-      { id: "belt-classic-black", label: "Classic Black Belt", priceKes: 1800 },
-      { id: "belt-signature-brown", label: "Signature Brown Belt", priceKes: 2600 },
-      { id: "belt-luxe-dual", label: "Luxe Dual-Tone Belt", priceKes: 3800 },
-    ],
-  },
-  {
-    id: "watch",
-    label: "Watch",
-    items: [
-      { id: "watch-silver", label: "Silver Dial Watch", priceKes: 5200 },
-      { id: "watch-noir", label: "Noir Chronograph Watch", priceKes: 7900 },
-      { id: "watch-gold", label: "Gold Accent Watch", priceKes: 9800 },
-    ],
-  },
-  {
-    id: "bracelet",
-    label: "Bracelet",
-    items: [
-      { id: "bracelet-steel", label: "Steel Link Bracelet", priceKes: 1500 },
-      { id: "bracelet-leather", label: "Leather Wrap Bracelet", priceKes: 2100 },
-      { id: "bracelet-obsidian", label: "Obsidian Bead Bracelet", priceKes: 2800 },
-    ],
-  },
-  {
-    id: "fragrance",
-    label: "Men's Fragrance",
-    items: [
-      { id: "fragrance-noir-50", label: "Noir Essence 50ml", priceKes: 3200 },
-      { id: "fragrance-noir-100", label: "Noir Essence 100ml", priceKes: 5600 },
-      { id: "fragrance-oud-100", label: "Oud Signature 100ml", priceKes: 6400 },
-    ],
-  },
-];
-
-export default function GiftCustomizationBuilder({ packagingOptions }: { packagingOptions: PackagingOption[] }) {
+export default function GiftCustomizationBuilder({
+  packagingOptions,
+  config,
+}: {
+  packagingOptions: PackagingOption[];
+  config: GiftAtelierPublicConfig;
+}) {
   const router = useRouter();
   const [recipient, setRecipient] = useState<RecipientProfile>("for_her");
   const [selectedGifts, setSelectedGifts] = useState<string[]>([]);
@@ -199,8 +63,9 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
   const [selectedPackagingCode, setSelectedPackagingCode] = useState<string>(packagingOptions[0]?.code ?? "");
   const [message, setMessage] = useState("");
 
-  const recipientOptions = curatedGifts[recipient];
-  const recipientCareOptions = recipient === "for_her" ? forHerBodyCareOptions : forHimCareOptions;
+  const recipientKey = recipient === "for_her" ? "forHer" : "forHim";
+  const recipientOptions = config[recipientKey].curated;
+  const recipientCareOptions = config[recipientKey].bodyCare;
   const selectedPackaging = packagingOptions.find((option) => option.code === selectedPackagingCode);
 
   const giftsTotal = useMemo(
@@ -232,8 +97,9 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
       return [...prev, id];
     });
     const gift = recipientOptions.find((item) => item.id === id);
-    if (gift && !selectedGiftOptions[id]) {
-      setSelectedGiftOptions((prev) => ({ ...prev, [id]: gift.options[0].id }));
+    const firstId = gift?.options[0]?.id;
+    if (gift && firstId && !selectedGiftOptions[id]) {
+      setSelectedGiftOptions((prev) => ({ ...prev, [id]: firstId }));
     }
   }
 
@@ -255,8 +121,9 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
       return [...prev, typeId];
     });
     const type = recipientCareOptions.find((item) => item.id === typeId);
-    if (type && !selectedBodyCareItems[typeId]) {
-      setSelectedBodyCareItems((prev) => ({ ...prev, [typeId]: type.items[0].id }));
+    const firstItemId = type?.items[0]?.id;
+    if (type && firstItemId && !selectedBodyCareItems[typeId]) {
+      setSelectedBodyCareItems((prev) => ({ ...prev, [typeId]: firstItemId }));
     }
   }
 
@@ -279,11 +146,17 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
         selectedBodyCareTypes.slice().sort().join("-") || "no-care",
       ].join(":");
 
-      addToCart({
+      const line = {
         productId: packageId,
         name: packageName,
         priceKes: Math.max(0, totalKes),
         quantity: 1,
+      };
+      addToCart(line);
+      trackAddToCart(line, {
+        listId: "gift_atelier",
+        listName: "Gift customization",
+        source: "gift_builder",
       });
     }
 
@@ -326,6 +199,12 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
               ? "Add premium body care products and choose exact variants."
               : "Add premium accessories and fragrance variants."}
           </p>
+          {!recipientCareOptions.length ? (
+            <p className="mt-4 text-sm text-muted">
+              We are refreshing add-on options for this collection. Please check back soon, or contact us and we will
+              help you build the perfect gift.
+            </p>
+          ) : null}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {recipientCareOptions.map((type) => {
               const isSelected = selectedBodyCareTypes.includes(type.id);
@@ -338,7 +217,7 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
                 >
                   <p className="text-sm text-foreground">{type.label}</p>
                   <p className="mt-1 text-xs text-muted">
-                    From Ksh {Math.min(...type.items.map((item) => item.priceKes)).toLocaleString()}
+                    From Ksh {minOptionPrice(type.items).toLocaleString()}
                   </p>
                 </button>
               );
@@ -356,7 +235,7 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
                     <p className="text-sm text-muted">{type.label}</p>
                     <select
                       className="rounded-md border border-gold/40 bg-black p-2 text-sm"
-                      value={selectedBodyCareItems[type.id] ?? type.items[0].id}
+                      value={selectedBodyCareItems[type.id] ?? type.items[0]?.id ?? ""}
                       onChange={(e) => setBodyCareItem(type.id, e.target.value)}
                     >
                       {type.items.map((item) => (
@@ -373,6 +252,12 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
 
         <div className="luxury-card rounded-xl p-5">
           <h2 className="text-sm tracking-[0.2em] text-gold">CHOOSE GIFTS</h2>
+          {!recipientOptions.length ? (
+            <p className="mt-4 text-sm text-muted">
+              Curated gift choices for this profile are being updated. Check back shortly, or reach out and our team will
+              curate something special for you.
+            </p>
+          ) : null}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {recipientOptions.map((gift) => {
               const isSelected = selectedGifts.includes(gift.id);
@@ -386,7 +271,7 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
                   <p className="text-sm text-foreground">{gift.name}</p>
                   <p className="mt-1 text-xs text-muted">{gift.description}</p>
                   <p className="mt-2 text-xs text-muted">
-                    From Ksh {Math.min(...gift.options.map((option) => option.priceKes)).toLocaleString()}
+                    From Ksh {minOptionPrice(gift.options).toLocaleString()}
                   </p>
                 </button>
               );
@@ -402,7 +287,7 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
                     <p className="text-sm text-muted">{gift.name}</p>
                     <select
                       className="rounded-md border border-gold/40 bg-black p-2 text-sm"
-                      value={selectedGiftOptions[gift.id] ?? gift.options[0].id}
+                      value={selectedGiftOptions[gift.id] ?? gift.options[0]?.id ?? ""}
                       onChange={(e) => setGiftOption(gift.id, e.target.value)}
                     >
                       {gift.options.map((option) => (
@@ -456,14 +341,20 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
                   <span>
                     {gift.name}
                     <span className="ml-1 text-xs text-muted">
-                      ({gift.options.find((option) => option.id === (selectedGiftOptions[gift.id] ?? gift.options[0].id))?.label})
+                      (
+                        {
+                          gift.options.find(
+                            (option) => option.id === (selectedGiftOptions[gift.id] ?? gift.options[0]?.id)
+                          )?.label
+                        }
+                      )
                     </span>
                   </span>
                   <span className="text-gold">
                     Ksh{" "}
                     {(
                       gift.options.find(
-                        (option) => option.id === (selectedGiftOptions[gift.id] ?? gift.options[0].id)
+                        (option) => option.id === (selectedGiftOptions[gift.id] ?? gift.options[0]?.id)
                       )?.priceKes ?? 0
                     ).toLocaleString()}
                   </span>
@@ -481,7 +372,7 @@ export default function GiftCustomizationBuilder({ packagingOptions }: { packagi
             recipientCareOptions
               .filter((type) => selectedBodyCareTypes.includes(type.id))
               .map((type) => {
-                const selectedItemId = selectedBodyCareItems[type.id] ?? type.items[0].id;
+                const selectedItemId = selectedBodyCareItems[type.id] ?? type.items[0]?.id ?? "";
                 const selectedItem = type.items.find((item) => item.id === selectedItemId);
                 return (
                   <div key={`${type.id}-summary`} className="flex items-center justify-between text-sm">

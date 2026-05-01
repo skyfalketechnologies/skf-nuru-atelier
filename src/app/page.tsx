@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { getAllBlogPosts } from "@/lib/blog";
+import { HomepageGiftPromoAddToCart } from "@/components/HomepageGiftPromoAddToCart";
+import { HomeHeroBackground } from "@/components/HomeHeroBackground";
+import { HomeHeroCtas } from "@/components/HomeHeroCtas";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -26,18 +29,83 @@ type FeaturedProduct = {
   isFeatured?: boolean;
 };
 
+type HomepageGiftPromo = {
+  discountPercent: number;
+  discountedPriceKes: number;
+  product: {
+    _id: string;
+    name: string;
+    slug: string;
+    priceKes: number;
+    images: string[];
+    stock: number;
+  };
+};
+
+const FALLBACK_HERO_URLS = [
+  "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=1800&q=80",
+  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1800&q=80",
+  "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?auto=format&fit=crop&w=1800&q=80",
+];
+
+const FALLBACK_HERO_OVERLAY = {
+  kicker: "NURU ATELIER BY SKYFALKE",
+  headline: "Fragrance, Body Care, and Gift Shopping Made Easy",
+  subheading:
+    "Shop quality perfumes, body care products, and ready gift sets. Simple browsing, smooth checkout, and trusted delivery.",
+  primaryCtaLabel: "Shop Now",
+  primaryCtaHref: "/shop",
+  secondaryCtaLabel: "Customize a Gift",
+  secondaryCtaHref: "/gift-customization",
+};
+
+type HomepageHeroPayload = {
+  imageUrls: string[];
+  kicker: string;
+  headline: string;
+  subheading: string;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
+};
+
 export default async function Home() {
-  const data = await apiGet<{ products: FeaturedProduct[] }>(
-    "/api/catalog/products?sort=popular&limit=8"
-  ).catch(() => ({ products: [] }));
+  const [data, giftPromoRes, heroRes] = await Promise.all([
+    apiGet<{ products: FeaturedProduct[] }>("/api/catalog/products?sort=popular&limit=8").catch(() => ({
+      products: [],
+    })),
+    apiGet<{ promo: HomepageGiftPromo | null }>("/api/catalog/homepage-gift-promo").catch(() => ({ promo: null })),
+    apiGet<HomepageHeroPayload>("/api/catalog/homepage-hero").catch(() => ({
+      imageUrls: FALLBACK_HERO_URLS,
+      ...FALLBACK_HERO_OVERLAY,
+    })),
+  ]);
   const featuredProducts = data.products.filter((product) => product.isFeatured).slice(0, 4);
   const productsToRender = featuredProducts.length ? featuredProducts : data.products.slice(0, 4);
   const bestSellingProducts = data.products.slice(0, 8);
-  const giftProduct = productsToRender[0];
-  const giftDiscountRate = 0.2;
-  const giftDiscountedPrice = giftProduct
-    ? Math.round(giftProduct.priceKes * (1 - giftDiscountRate))
-    : 0;
+  const giftPromo = giftPromoRes.promo;
+  const heroImageUrls =
+    heroRes.imageUrls?.filter((u) => typeof u === "string" && u.trim().length > 0).length > 0
+      ? heroRes.imageUrls
+      : FALLBACK_HERO_URLS;
+  const heroOverlay = {
+    kicker: heroRes.kicker?.trim() ? heroRes.kicker : FALLBACK_HERO_OVERLAY.kicker,
+    headline: heroRes.headline?.trim() ? heroRes.headline : FALLBACK_HERO_OVERLAY.headline,
+    subheading: heroRes.subheading?.trim() ? heroRes.subheading : FALLBACK_HERO_OVERLAY.subheading,
+    primaryCtaLabel: heroRes.primaryCtaLabel?.trim()
+      ? heroRes.primaryCtaLabel
+      : FALLBACK_HERO_OVERLAY.primaryCtaLabel,
+    primaryCtaHref: heroRes.primaryCtaHref?.trim()
+      ? heroRes.primaryCtaHref
+      : FALLBACK_HERO_OVERLAY.primaryCtaHref,
+    secondaryCtaLabel: heroRes.secondaryCtaLabel?.trim()
+      ? heroRes.secondaryCtaLabel
+      : FALLBACK_HERO_OVERLAY.secondaryCtaLabel,
+    secondaryCtaHref: heroRes.secondaryCtaHref?.trim()
+      ? heroRes.secondaryCtaHref
+      : FALLBACK_HERO_OVERLAY.secondaryCtaHref,
+  };
   const brandLogos = [
     { name: "Michaels Bouquet", src: "/brands/michaels.webp" },
     { name: "Maybeline", src: "/brands/maybelline.png" },
@@ -69,53 +137,22 @@ export default async function Home() {
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-12 px-4 py-10 sm:px-6 sm:py-14">
-      <section className="luxury-card luxury-hero hero-slider relative overflow-hidden rounded-2xl px-5 py-12 sm:px-10 sm:py-16">
-        <div className="hero-slider-track" aria-hidden>
-          <div
-            className="hero-slide"
-            style={{
-              backgroundImage:
-                "url(https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=1800&q=80)",
-            }}
-          />
-          <div
-            className="hero-slide"
-            style={{
-              backgroundImage:
-                "url(https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1800&q=80)",
-            }}
-          />
-          <div
-            className="hero-slide"
-            style={{
-              backgroundImage:
-                "url(https://images.unsplash.com/photo-1585386959984-a4155224a1ad?auto=format&fit=crop&w=1800&q=80)",
-            }}
-          />
-        </div>
+      <section className="luxury-card luxury-hero relative overflow-hidden rounded-2xl px-5 py-12 sm:px-10 sm:py-16">
+        <HomeHeroBackground imageUrls={heroImageUrls} />
         <div className="hero-overlay" aria-hidden />
-        <p className="relative z-[1] mb-4 text-xs tracking-[0.3em] text-gold">NURU ATELIER BY SKYFALKE</p>
+        <p className="relative z-[1] mb-4 text-xs tracking-[0.3em] text-gold">{heroOverlay.kicker}</p>
         <h1 className="section-title relative z-[1] max-w-3xl text-4xl leading-tight text-foreground sm:text-7xl">
-          Fragrance, Body Care, and Gift Shopping Made Easy
+          {heroOverlay.headline}
         </h1>
         <p className="relative z-[1] mt-5 max-w-2xl text-sm leading-7 text-muted sm:text-base">
-          Shop quality perfumes, body care products, and ready gift sets. Simple browsing, smooth
-          checkout, and trusted delivery.
+          {heroOverlay.subheading}
         </p>
-        <div className="relative z-[1] mt-9 flex flex-wrap gap-3">
-          <Link
-            href="/shop"
-            className="rounded-full bg-gold px-6 py-3 text-sm font-medium text-black hover:opacity-90"
-          >
-            Shop Now
-          </Link>
-          <Link
-            href="/gift-customization"
-            className="gold-border rounded-full px-6 py-3 text-sm text-gold hover:bg-gold/10"
-          >
-            Customize a Gift
-          </Link>
-        </div>
+        <HomeHeroCtas
+          primaryHref={heroOverlay.primaryCtaHref}
+          primaryLabel={heroOverlay.primaryCtaLabel}
+          secondaryHref={heroOverlay.secondaryCtaHref}
+          secondaryLabel={heroOverlay.secondaryCtaLabel}
+        />
       </section>
 
       <section className="luxury-card overflow-hidden rounded-2xl p-6 sm:p-8">
@@ -200,39 +237,40 @@ export default async function Home() {
         </div>
       </section>
 
-      {giftProduct ? (
+      {giftPromo ? (
         <section className="luxury-card rounded-2xl p-6 sm:p-8">
           <p className="text-xs tracking-[0.25em] text-gold">OUR GIFT FOR YOU</p>
           <div className="mt-3 grid gap-5 sm:grid-cols-[1.2fr_0.8fr] sm:items-center">
             <div>
-              <h2 className="section-title text-3xl">{giftProduct.name}</h2>
+              <h2 className="section-title text-3xl">{giftPromo.product.name}</h2>
               <p className="mt-3 max-w-xl text-sm leading-7 text-muted">
                 Enjoy a limited-time discount on this product. Grab it now while the offer is still
                 active.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <span className="text-sm text-muted line-through">
-                  Ksh {giftProduct.priceKes.toLocaleString()}
+                  Ksh {giftPromo.product.priceKes.toLocaleString()}
                 </span>
                 <span className="text-xl font-medium text-gold">
-                  Ksh {giftDiscountedPrice.toLocaleString()}
+                  Ksh {giftPromo.discountedPriceKes.toLocaleString()}
                 </span>
                 <span className="rounded-full bg-gold/15 px-3 py-1 text-xs text-gold">
-                  -20%
+                  -{giftPromo.discountPercent}%
                 </span>
               </div>
-              <Link
-                href={`/shop/${giftProduct.slug}`}
-                className="mt-6 inline-flex rounded-full bg-gold px-6 py-3 text-sm font-medium text-black hover:opacity-90"
-              >
-                Get This Offer
-              </Link>
+              <HomepageGiftPromoAddToCart
+                productId={giftPromo.product._id}
+                name={giftPromo.product.name}
+                discountedPriceKes={giftPromo.discountedPriceKes}
+                slug={giftPromo.product.slug}
+                inStock={giftPromo.product.stock > 0}
+              />
             </div>
             <div
               className="h-56 rounded-xl bg-neutral-900 bg-cover bg-center"
               style={{
-                backgroundImage: giftProduct.images[0]
-                  ? `url(${giftProduct.images[0]})`
+                backgroundImage: giftPromo.product.images[0]
+                  ? `url(${giftPromo.product.images[0]})`
                   : undefined,
               }}
             />

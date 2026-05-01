@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { GtmShopListingView } from "@/components/GtmShopListingView";
+import { ShopProductLink } from "@/components/ShopProductLink";
 import { apiGet } from "@/lib/api";
 import type { Metadata } from "next";
 
@@ -59,9 +61,12 @@ export default async function ShopPage({
     apiGet<{ brands: Brand[] }>("/api/catalog/brands").catch(() => ({ brands: [] })),
   ]);
   const filteredProducts = productsData.products;
+  const catalogListId = `shop:${query.toString()}`;
+  const catalogListName = "Product catalog";
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-10 sm:px-6">
+      <GtmShopListingView products={filteredProducts} listId={catalogListId} listName={catalogListName} />
       <section className="luxury-card rounded-2xl p-6 sm:p-8">
         <p className="text-xs tracking-[0.25em] text-gold">PRODUCT CATALOG</p>
         <h1 className="section-title mt-2 text-3xl text-foreground sm:text-4xl">Our Products Collection</h1>
@@ -133,11 +138,15 @@ export default async function ShopPage({
             Showing <span className="text-foreground">{filteredProducts.length}</span> product(s)
           </p>
           <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
-            {filteredProducts.map((product) => (
-              <Link
+            {filteredProducts.map((product, index) => (
+              <ShopProductLink
                 key={product._id}
                 href={`/shop/${product.slug}`}
                 className="luxury-card hover-lift rounded-xl p-3"
+                product={product}
+                listId={catalogListId}
+                listName={catalogListName}
+                index={index + 1}
               >
                 <div
                   className="h-44 rounded-lg bg-neutral-900 bg-cover bg-center"
@@ -148,7 +157,7 @@ export default async function ShopPage({
                   {product.category?.name ?? "Luxury Essentials"} · {product.brand?.name ?? "NURU ATELIER"}
                 </p>
                 <p className="mt-1 text-sm text-gold">Ksh {product.priceKes.toLocaleString()}</p>
-              </Link>
+              </ShopProductLink>
             ))}
           </div>
         </div>

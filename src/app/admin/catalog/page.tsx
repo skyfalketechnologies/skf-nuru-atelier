@@ -268,6 +268,7 @@ export default function AdminCatalogPage() {
               <option value="luxury_box">Luxury Box</option>
               <option value="ribbon_wrap">Ribbon Wrap</option>
               <option value="signature_wrap">Signature Wrap</option>
+              <option value="nuru_atelier_bag">Nuru Atelier Bag</option>
             </select>
             <input className="rounded border border-gold/40 bg-black p-2" placeholder="Extra Cost (KES)" value={giftCost} onChange={(e) => setGiftCost(e.target.value)} />
             <button className="rounded bg-gold px-4 py-2 text-sm text-black">Add Gift Option</button>

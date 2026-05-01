@@ -1,5 +1,6 @@
 import { apiGet } from "@/lib/api";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { GtmProductViewTracker } from "@/components/GtmProductViewTracker";
 import { ProductReviews } from "@/components/ProductReviews";
 
 type Product = {
@@ -14,9 +15,18 @@ type Product = {
   reviews?: { _id?: string; name: string; rating: number; comment: string; createdAt?: string }[];
 };
 
+type HomepageGiftPromo = {
+  discountPercent: number;
+  discountedPriceKes: number;
+  product: { _id: string };
+};
+
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const data = await apiGet<{ product: Product }>(`/api/catalog/products/${slug}`).catch(() => null);
+  const [data, promoRes] = await Promise.all([
+    apiGet<{ product: Product }>(`/api/catalog/products/${slug}`).catch(() => null),
+    apiGet<{ promo: HomepageGiftPromo | null }>("/api/catalog/homepage-gift-promo").catch(() => ({ promo: null })),
+  ]);
 
   if (!data) {
     return <section className="mx-auto max-w-5xl px-4 py-10 text-muted">Product unavailable.</section>;
@@ -25,9 +35,21 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = data.product;
   const inStock = product.stock > 0;
   const reviews = product.reviews ?? [];
+  const homepagePromo =
+    promoRes.promo && String(promoRes.promo.product._id) === String(product._id) ? promoRes.promo : null;
+  const cartPriceKes = homepagePromo ? homepagePromo.discountedPriceKes : product.priceKes;
 
   return (
     <section className="mx-auto max-w-6xl space-y-8 px-4 py-10">
+      <GtmProductViewTracker
+        product={{
+          _id: product._id,
+          name: product.name,
+          priceKes: cartPriceKes,
+          category: product.category,
+          brand: product.brand,
+        }}
+      />
       <div className="grid gap-8 sm:grid-cols-2">
         <div className="space-y-4">
           <div
@@ -52,7 +74,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </p>
           <p className="mt-4 leading-7 text-muted">{product.description}</p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <span className="text-2xl">Ksh {product.priceKes.toLocaleString()}</span>
+            {homepagePromo ? (
+              <>
+                <span className="text-lg text-muted line-through">Ksh {product.priceKes.toLocaleString()}</span>
+                <span className="text-2xl text-gold">Ksh {homepagePromo.discountedPriceKes.toLocaleString()}</span>
+                <span className="rounded-full bg-gold/15 px-3 py-1 text-xs text-gold">
+                  -{homepagePromo.discountPercent}% — Our gift for you
+                </span>
+              </>
+            ) : (
+              <span className="text-2xl">Ksh {product.priceKes.toLocaleString()}</span>
+            )}
             <span
               className={`rounded-full px-3 py-1 text-xs ${
                 inStock ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300"
@@ -67,7 +99,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <AddToCartButton
           productId={product._id}
           name={product.name}
-          priceKes={product.priceKes}
+          priceKes={cartPriceKes}
+          listId="product_detail"
+          listName="Product detail"
+          source="pdp"
         />
         </div>
       </div>

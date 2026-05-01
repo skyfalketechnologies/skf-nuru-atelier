@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CART_UPDATED_EVENT,
   clearCart,
@@ -19,6 +19,13 @@ import {
   clearGiftCustomizationDraft,
   readGiftCustomizationDraft,
 } from "@/lib/giftCustomization";
+import {
+  trackBeginCheckout,
+  trackPurchase,
+  trackRemoveFromCart,
+  trackViewCart,
+  type PurchaseSnapshot,
+} from "@/lib/gtm-ecommerce";
 
 export default function CartPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -45,6 +52,10 @@ export default function CartPage() {
   const [importedGiftDetails, setImportedGiftDetails] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<string>("");
+
+  const purchaseSnapshotRef = useRef<PurchaseSnapshot | null>(null);
+  const viewedCartRef = useRef(false);
+  const beganCheckoutRef = useRef(false);
 
   useEffect(() => {
     setCart(readCart());
@@ -80,16 +91,42 @@ export default function CartPage() {
   const deliveryFee = 500;
   const total = subtotal + deliveryFee;
 
+  useEffect(() => {
+    if (!cart.length || viewedCartRef.current) return;
+    viewedCartRef.current = true;
+    trackViewCart(cart, total);
+  }, [cart, total]);
+
+  useEffect(() => {
+    if (step !== 3 || beganCheckoutRef.current || !cart.length) return;
+    beganCheckoutRef.current = true;
+    trackBeginCheckout(cart, total);
+  }, [step, cart, total]);
+
+  useEffect(() => {
+    if (paymentStatus !== "paid") return;
+    const snap = purchaseSnapshotRef.current;
+    if (!snap) return;
+    trackPurchase(snap);
+    purchaseSnapshotRef.current = null;
+  }, [paymentStatus]);
+
   function refreshCart() {
     setCart(readCart());
   }
 
   function changeQty(productId: string, nextQty: number) {
+    const line = cart.find((item) => item.productId === productId);
+    if (line && nextQty < line.quantity) {
+      trackRemoveFromCart(line, line.quantity - nextQty);
+    }
     updateCartItemQuantity(productId, nextQty);
     refreshCart();
   }
 
   function removeItem(productId: string) {
+    const line = cart.find((item) => item.productId === productId);
+    if (line) trackRemoveFromCart(line, line.quantity);
     removeFromCart(productId);
     refreshCart();
   }
@@ -102,6 +139,8 @@ export default function CartPage() {
   }
 
   async function initiatePaymentForOrder(orderLookup: string) {
+    const lineItems = readCart();
+    const subtotalAtPay = lineItems.reduce((sum, item) => sum + item.priceKes * item.quantity, 0);
     const payRes = await fetch(`${apiUrl}/api/payments/mpesa/initiate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -117,6 +156,15 @@ export default function CartPage() {
       );
       setResult(`Order ${orderLookup} was created. Keep this order reference for support.`);
       return false;
+    }
+    const txId = payData.orderReference || orderLookup;
+    if (lineItems.length > 0) {
+      purchaseSnapshotRef.current = {
+        transaction_id: txId,
+        value: subtotalAtPay + deliveryFee,
+        shipping: deliveryFee,
+        items: lineItems.map((i) => ({ ...i })),
+      };
     }
     setPaymentStatus("initiated");
     setResult(

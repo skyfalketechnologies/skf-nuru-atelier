@@ -21,7 +21,7 @@ export default function HelpCenterPage() {
           },
           {
             q: "How do I contact support?",
-            a: "Email concierge@nuruatelier.com or use WhatsApp +254 700 000 000.",
+            a: "Email shop@nuruatelier.com or use WhatsApp +254 14 101 0644.",
           },
           {
             q: "Can I customize gift packaging?",

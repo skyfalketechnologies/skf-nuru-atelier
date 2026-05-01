@@ -85,6 +85,13 @@ export const adminModules: AdminModule[] = [
     status: "live",
   },
   {
+    href: "/admin/gift-customization",
+    label: "Gift Atelier Config",
+    description: "Curated gift categories, variants, and add-on pricing for the customization flow.",
+    group: "Operations",
+    status: "live",
+  },
+  {
     href: "/admin/finance",
     label: "Finance",
     description: "Sales reconciliation, payout status, and cashflow controls.",

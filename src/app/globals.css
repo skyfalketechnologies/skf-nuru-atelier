@@ -134,20 +134,6 @@ button {
   animation: marquee-scroll 24s linear infinite;
 }
 
-.hero-slider-track {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  width: 300%;
-  animation: hero-slide-left 18s ease-in-out infinite;
-}
-
-.hero-slide {
-  width: 100%;
-  background-size: cover;
-  background-position: center;
-}
-
 .hero-overlay {
   position: absolute;
   inset: 0;
@@ -172,21 +158,12 @@ button {
   }
 }
 
-@keyframes hero-slide-left {
-  0%,
-  28% {
-    transform: translateX(0);
-  }
-  33%,
-  61% {
-    transform: translateX(-33.333%);
-  }
-  66%,
-  94% {
-    transform: translateX(-66.666%);
+@keyframes admin-loader-bar {
+  0% {
+    transform: translateX(-120%);
   }
   100% {
-    transform: translateX(0);
+    transform: translateX(420%);
   }
 }
 

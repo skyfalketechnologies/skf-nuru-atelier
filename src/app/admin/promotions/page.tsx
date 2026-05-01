@@ -1,3 +1,5 @@
+import { HomepageGiftPromoEditor } from "@/components/admin/HomepageGiftPromoEditor";
+
 const activePromotions = [
   { name: "Weekend Premium Bundle", channel: "Sitewide", uplift: "+14.2%", endDate: "2026-05-10" },
   { name: "VIP Repeat Customer Offer", channel: "Email", uplift: "+9.1%", endDate: "2026-05-06" },
@@ -14,6 +16,7 @@ export default function AdminPromotionsPage() {
           Manage discount programs with margin protection and controlled campaign windows.
         </p>
       </div>
+      <HomepageGiftPromoEditor />
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-gold/20 bg-black/30 p-4"><p className="text-xs text-muted">Live Campaigns</p><p className="mt-2 text-2xl text-gold">6</p></div>
         <div className="rounded-xl border border-gold/20 bg-black/30 p-4"><p className="text-xs text-muted">Avg. Redemption</p><p className="mt-2 text-2xl text-gold">23.4%</p></div>
