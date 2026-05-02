@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { getAllBlogPosts } from "@/lib/blog";
+import { FeaturedProductsCarousel } from "@/components/FeaturedProductsCarousel";
 import { HomepageGiftPromoAddToCart } from "@/components/HomepageGiftPromoAddToCart";
 import { ProductGridCard } from "@/components/ProductGridCard";
 import { ProductImageFrame } from "@/components/ProductImageFrame";
@@ -84,8 +85,11 @@ type HomepageHeroPayload = {
 };
 
 export default async function Home() {
-  const [data, giftPromoRes, heroRes] = await Promise.all([
-    apiGet<{ products: FeaturedProduct[] }>("/api/catalog/products?sort=popular&limit=8").catch(() => ({
+  const [featuredRes, bestSellingRes, giftPromoRes, heroRes] = await Promise.all([
+    apiGet<{ products: FeaturedProduct[] }>("/api/catalog/featured-products").catch(() => ({
+      products: [],
+    })),
+    apiGet<{ products: FeaturedProduct[] }>("/api/catalog/best-selling").catch(() => ({
       products: [],
     })),
     apiGet<{ promo: HomepageGiftPromo | null }>("/api/catalog/homepage-gift-promo").catch(() => ({ promo: null })),
@@ -94,9 +98,9 @@ export default async function Home() {
       ...FALLBACK_HERO_OVERLAY,
     })),
   ]);
-  const featuredProducts = data.products.filter((product) => product.isFeatured).slice(0, 4);
-  const productsToRender = featuredProducts.length ? featuredProducts : data.products.slice(0, 4);
-  const bestSellingProducts = data.products.slice(0, 8);
+  const featuredProducts = featuredRes.products;
+  const featuredProductsScrollable = featuredProducts.length > 4;
+  const bestSellingProducts = bestSellingRes.products.slice(0, 8);
   const giftPromo = giftPromoRes.promo;
   const heroImageUrls =
     heroRes.imageUrls?.filter((u) => typeof u === "string" && u.trim().length > 0).length > 0
@@ -190,28 +194,34 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-          <div>
-            <p className="text-xs tracking-[0.25em] text-gold">FEATURED PRODUCTS</p>
-            <h2 className="section-title mt-2 text-3xl">Our Most Desired Pieces</h2>
+      {featuredProducts.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div>
+              <p className="text-xs tracking-[0.25em] text-gold">FEATURED PRODUCTS</p>
+              <h2 className="section-title mt-2 text-3xl">Our Most Desired Products</h2>
+            </div>
+            <Link href="/shop" className="text-sm text-gold hover:text-foreground">
+              View all products
+            </Link>
           </div>
-          <Link href="/shop" className="text-sm text-gold hover:text-foreground">
-            View all products
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5">
-          {productsToRender.map((product) => (
-            <ProductGridCard
-              key={product._id}
-              product={product}
-              listIdForCart="home_featured"
-              listNameForCart="Featured products"
-              source="home_featured"
-            />
-          ))}
-        </div>
-      </section>
+          {featuredProductsScrollable ? (
+            <FeaturedProductsCarousel products={featuredProducts} />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5">
+              {featuredProducts.map((product) => (
+                <ProductGridCard
+                  key={product._id}
+                  product={product}
+                  listIdForCart="home_featured"
+                  listNameForCart="Featured products"
+                  source="home_featured"
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
@@ -220,7 +230,7 @@ export default async function Home() {
             <h2 className="section-title mt-2 text-3xl">Best Selling Picks</h2>
           </div>
           <Link href="/shop?sort=popular" className="text-sm text-gold hover:text-foreground">
-            Browse best sellers
+            Browse best selling
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5">
@@ -263,6 +273,7 @@ export default async function Home() {
                 name={giftPromo.product.name}
                 discountedPriceKes={giftPromo.discountedPriceKes}
                 slug={giftPromo.product.slug}
+                stock={giftPromo.product.stock}
                 inStock={giftPromo.product.stock > 0}
               />
             </div>

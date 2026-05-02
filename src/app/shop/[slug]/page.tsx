@@ -294,7 +294,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </div>
 
             <p className="mt-5 text-xs leading-relaxed text-muted/90">
-              Delivery available across Kenya.
+              Shipping cost is calculated at checkout.
             </p>
 
             <div className="mt-8 border-t border-gold/10 pt-8">
@@ -302,6 +302,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 productId={product._id}
                 name={product.name}
                 priceKes={cartPriceKes}
+                stock={product.stock}
                 listId="product_detail"
                 listName="Product detail"
                 source="pdp"

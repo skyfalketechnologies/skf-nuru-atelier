@@ -11,6 +11,7 @@ type Props = {
   name: string;
   discountedPriceKes: number;
   slug: string;
+  stock: number;
   inStock: boolean;
 };
 
@@ -19,6 +20,7 @@ export function HomepageGiftPromoAddToCart({
   name,
   discountedPriceKes,
   slug,
+  stock,
   inStock,
 }: Props) {
   const router = useRouter();
@@ -37,7 +39,7 @@ export function HomepageGiftPromoAddToCart({
         className="inline-flex rounded-full bg-gold px-6 py-3 text-sm font-medium text-black hover:opacity-90 disabled:opacity-50"
         disabled={added}
         onClick={() => {
-          const line = { productId, name, priceKes: discountedPriceKes, quantity: 1 };
+          const line = { productId, name, priceKes: discountedPriceKes, quantity: 1, stock };
           addToCart(line);
           trackAddToCart(line, {
             listId: "homepage_gift_promo",

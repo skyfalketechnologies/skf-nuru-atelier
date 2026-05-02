@@ -8,6 +8,8 @@ type Props = {
   productId: string;
   name: string;
   priceKes: number;
+  /** Current catalog stock; caps quantity when adding or merging lines */
+  stock?: number;
   listId?: string;
   listName?: string;
   source?: string;
@@ -21,6 +23,7 @@ export function AddToCartButton({
   productId,
   name,
   priceKes,
+  stock,
   listId,
   listName,
   source,
@@ -53,7 +56,7 @@ export function AddToCartButton({
       }
       onClick={() => {
         if (disabled) return;
-        const line = { productId, name, priceKes, quantity: 1 };
+        const line = { productId, name, priceKes, quantity: 1, ...(stock !== undefined ? { stock } : {}) };
         addToCart(line);
         trackAddToCart(line, { listId, listName, source });
         setAdded(true);

@@ -6,6 +6,7 @@ import {
   clearCart,
   readCart,
   removeFromCart,
+  syncCartStocksFromServer,
   updateCartItemQuantity,
   type CartItem,
 } from "@/lib/cart";
@@ -26,6 +27,7 @@ import {
   trackViewCart,
   type PurchaseSnapshot,
 } from "@/lib/gtm-ecommerce";
+import { CartRecommendations } from "@/components/CartRecommendations";
 
 export default function CartPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -88,6 +90,32 @@ export default function CartPage() {
     () => cart.reduce((sum, item) => sum + item.priceKes * item.quantity, 0),
     [cart]
   );
+
+  const cartCatalogIdsKey = useMemo(() => {
+    const oid = /^[a-f0-9]{24}$/i;
+    return [...new Set(cart.map((item) => item.productId).filter((id) => oid.test(id)))].sort().join(",");
+  }, [cart]);
+
+  useEffect(() => {
+    if (!cartCatalogIdsKey) return;
+    const ac = new AbortController();
+    void (async () => {
+      try {
+        const res = await fetch(
+          `${apiUrl}/api/catalog/product-stocks?ids=${encodeURIComponent(cartCatalogIdsKey)}`,
+          { signal: ac.signal }
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { stocks?: Record<string, number> };
+        if (!data.stocks || typeof data.stocks !== "object") return;
+        syncCartStocksFromServer(data.stocks);
+        setCart(readCart());
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    })();
+    return () => ac.abort();
+  }, [apiUrl, cartCatalogIdsKey]);
   const deliveryFee = 500;
   const total = subtotal + deliveryFee;
 
@@ -483,7 +511,8 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() => changeQty(item.productId, item.quantity + 1)}
-                      className="gold-border h-7 w-7 rounded-full text-sm"
+                      disabled={typeof item.stock === "number" && item.quantity >= item.stock}
+                      className="gold-border h-7 w-7 rounded-full text-sm disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       +
                     </button>
@@ -515,6 +544,8 @@ export default function CartPage() {
           </div>
         </aside>
       </div>
+
+      <CartRecommendations apiUrl={apiUrl} cart={cart} />
     </section>
   );
 }

@@ -75,6 +75,7 @@ export function ProductGridCard({
           productId={product._id}
           name={product.name}
           priceKes={product.priceKes}
+          stock={typeof product.stock === "number" ? product.stock : undefined}
           listId={listIdForCart}
           listName={listNameForCart}
           source={source}
