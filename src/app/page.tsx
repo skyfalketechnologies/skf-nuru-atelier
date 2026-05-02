@@ -2,6 +2,8 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { getAllBlogPosts } from "@/lib/blog";
 import { HomepageGiftPromoAddToCart } from "@/components/HomepageGiftPromoAddToCart";
+import { ProductGridCard } from "@/components/ProductGridCard";
+import { ProductImageFrame } from "@/components/ProductImageFrame";
 import { HomeHeroBackground } from "@/components/HomeHeroBackground";
 import { HomeHeroCtas } from "@/components/HomeHeroCtas";
 import type { Metadata } from "next";
@@ -26,12 +28,17 @@ type FeaturedProduct = {
   slug: string;
   priceKes: number;
   images: string[];
+  stock?: number;
   isFeatured?: boolean;
+  category?: { name: string; slug?: string };
+  brand?: { name: string; slug?: string };
 };
 
 type HomepageGiftPromo = {
   discountPercent: number;
   discountedPriceKes: number;
+  sectionKicker?: string;
+  sectionDescription?: string;
   product: {
     _id: string;
     name: string;
@@ -40,6 +47,12 @@ type HomepageGiftPromo = {
     images: string[];
     stock: number;
   };
+};
+
+const HOMEPAGE_GIFT_SECTION_DEFAULTS = {
+  kicker: "OUR GIFT FOR YOU",
+  description:
+    "Enjoy a limited-time discount on this product. Grab it now while the offer is still active.",
 };
 
 const FALLBACK_HERO_URLS = [
@@ -187,20 +200,15 @@ export default async function Home() {
             View all products
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5">
           {productsToRender.map((product) => (
-            <Link
+            <ProductGridCard
               key={product._id}
-              href={`/shop/${product.slug}`}
-              className="luxury-card hover-lift rounded-xl p-3"
-            >
-              <div
-                className="h-40 rounded-lg bg-neutral-900 bg-cover bg-center"
-                style={{ backgroundImage: product.images[0] ? `url(${product.images[0]})` : undefined }}
-              />
-              <h3 className="mt-3 text-sm">{product.name}</h3>
-              <p className="mt-1 text-sm text-gold">Ksh {product.priceKes.toLocaleString()}</p>
-            </Link>
+              product={product}
+              listIdForCart="home_featured"
+              listNameForCart="Featured products"
+              source="home_featured"
+            />
           ))}
         </div>
       </section>
@@ -215,37 +223,29 @@ export default async function Home() {
             Browse best sellers
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5">
           {bestSellingProducts.map((product) => (
-            <Link
+            <ProductGridCard
               key={`best-${product._id}`}
-              href={`/shop/${product.slug}`}
-              className="luxury-card hover-lift rounded-xl p-3"
-            >
-              <div
-                className="h-36 rounded-lg bg-neutral-900 bg-cover bg-center"
-                style={{
-                  backgroundImage: product.images[0]
-                    ? `url(${product.images[0]})`
-                    : undefined,
-                }}
-              />
-              <h3 className="mt-3 text-sm">{product.name}</h3>
-              <p className="mt-1 text-sm text-gold">Ksh {product.priceKes.toLocaleString()}</p>
-            </Link>
+              product={product}
+              listIdForCart="home_best_sellers"
+              listNameForCart="Best selling"
+              source="home_best_sellers"
+            />
           ))}
         </div>
       </section>
 
       {giftPromo ? (
         <section className="luxury-card rounded-2xl p-6 sm:p-8">
-          <p className="text-xs tracking-[0.25em] text-gold">OUR GIFT FOR YOU</p>
+          <p className="text-xs tracking-[0.25em] text-gold uppercase">
+            {giftPromo.sectionKicker?.trim() || HOMEPAGE_GIFT_SECTION_DEFAULTS.kicker}
+          </p>
           <div className="mt-3 grid gap-5 sm:grid-cols-[1.2fr_0.8fr] sm:items-center">
             <div>
               <h2 className="section-title text-3xl">{giftPromo.product.name}</h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-muted">
-                Enjoy a limited-time discount on this product. Grab it now while the offer is still
-                active.
+              <p className="mt-3 max-w-xl whitespace-pre-line text-sm leading-7 text-muted">
+                {giftPromo.sectionDescription?.trim() || HOMEPAGE_GIFT_SECTION_DEFAULTS.description}
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <span className="text-sm text-muted line-through">
@@ -266,13 +266,10 @@ export default async function Home() {
                 inStock={giftPromo.product.stock > 0}
               />
             </div>
-            <div
-              className="h-56 rounded-xl bg-neutral-900 bg-cover bg-center"
-              style={{
-                backgroundImage: giftPromo.product.images[0]
-                  ? `url(${giftPromo.product.images[0]})`
-                  : undefined,
-              }}
+            <ProductImageFrame
+              src={giftPromo.product.images[0]}
+              alt={giftPromo.product.name}
+              className="flex h-56 items-center justify-center overflow-hidden rounded-xl bg-transparent"
             />
           </div>
         </section>
@@ -294,34 +291,36 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-          <div>
-            <p className="text-xs tracking-[0.25em] text-gold">EDITORIAL</p>
-            <h2 className="section-title mt-2 text-3xl">From the NURU Journal</h2>
-          </div>
-          <Link href="/blog" className="text-sm text-gold hover:text-foreground">
-            Visit the blog
-          </Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {latestPosts.map((post) => (
-            <Link key={post.slug} href={`/blog/${post.slug}`} className="luxury-card hover-lift rounded-xl p-5">
-              <p className="text-xs tracking-[0.2em] text-gold">{post.category.toUpperCase()}</p>
-              <h3 className="section-title mt-3 text-2xl leading-tight">{post.title}</h3>
-              <p className="mt-2 text-sm text-muted">{post.excerpt}</p>
-              <p className="mt-3 text-xs text-muted">
-                {new Date(post.publishedAt).toLocaleDateString("en-KE", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}{" "}
-                · {post.readTimeMinutes} min read
-              </p>
+      {latestPosts.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div>
+              <p className="text-xs tracking-[0.25em] text-gold">EDITORIAL</p>
+              <h2 className="section-title mt-2 text-3xl">From the NURU Journal</h2>
+            </div>
+            <Link href="/blog" className="text-sm text-gold hover:text-foreground">
+              Visit the blog
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {latestPosts.map((post) => (
+              <Link key={post.slug} href={`/blog/${post.slug}`} className="luxury-card hover-lift rounded-xl p-5">
+                <p className="text-xs tracking-[0.2em] text-gold">{post.category.toUpperCase()}</p>
+                <h3 className="section-title mt-3 text-2xl leading-tight">{post.title}</h3>
+                <p className="mt-2 text-sm text-muted">{post.excerpt}</p>
+                <p className="mt-3 text-xs text-muted">
+                  {new Date(post.publishedAt).toLocaleDateString("en-KE", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}{" "}
+                  · {post.readTimeMinutes} min read
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="luxury-card rounded-2xl p-6 text-center sm:p-10">
         <p className="text-xs tracking-[0.3em] text-gold">PRIVATE CURATION</p>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { fetchAdminTaxonomy } from "@/lib/adminTaxonomy";
 import { apiGetAuth, apiPatchAuth } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
 import { Toast } from "@/components/admin/Toast";
@@ -81,15 +82,9 @@ export default function AdminEditProductPage() {
       const token = getAuthToken();
       if (!token) return;
       try {
-        const [categoriesData, brandsData] = await Promise.all([
-          apiGetAuth<{ categories: Array<{ _id: string; name: string; slug: string }> }>(
-            "/api/admin/categories",
-            token
-          ),
-          apiGetAuth<{ brands: Array<{ _id: string; name: string; slug: string }> }>("/api/admin/brands", token),
-        ]);
-        setCategories(categoriesData.categories);
-        setBrands(brandsData.brands);
+        const { categories: c, brands: b } = await fetchAdminTaxonomy(token);
+        setCategories(c);
+        setBrands(b);
       } catch {
         notify("Could not load categories or brands.", "error");
       }
@@ -249,6 +244,14 @@ export default function AdminEditProductPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {!loading && productId ? (
+            <Link
+              href={`/admin/reviews?productId=${encodeURIComponent(productId)}`}
+              className="inline-flex items-center justify-center rounded-full border border-gold/40 px-4 py-2 text-sm text-gold hover:bg-gold/10"
+            >
+              Manage reviews
+            </Link>
+          ) : null}
           {!loading && slug ? (
             <Link
               href={`/shop/${slug}`}
@@ -434,15 +437,9 @@ export default function AdminEditProductPage() {
           const token = getAuthToken();
           if (!token) return;
           try {
-            const [categoriesData, brandsData] = await Promise.all([
-              apiGetAuth<{ categories: Array<{ _id: string; name: string; slug: string }> }>(
-                "/api/admin/categories",
-                token
-              ),
-              apiGetAuth<{ brands: Array<{ _id: string; name: string; slug: string }> }>("/api/admin/brands", token),
-            ]);
-            setCategories(categoriesData.categories);
-            setBrands(brandsData.brands);
+            const { categories: c, brands: b } = await fetchAdminTaxonomy(token);
+            setCategories(c);
+            setBrands(b);
           } catch {
             notify("Could not refresh categories or brands.", "error");
           }

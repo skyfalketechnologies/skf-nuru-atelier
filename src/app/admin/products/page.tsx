@@ -93,10 +93,6 @@ export default function AdminProductsPage() {
   }
 
   useEffect(() => {
-    loadProducts();
-  }, []);
-
-  useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedQuery(query.trim());
     }, 300);

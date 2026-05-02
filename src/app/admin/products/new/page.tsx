@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { fetchAdminTaxonomy } from "@/lib/adminTaxonomy";
 import { apiGetAuth, apiPostAuth } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
 import { Toast } from "@/components/admin/Toast";
@@ -54,20 +55,14 @@ export default function AdminNewProductPage() {
       const token = getAuthToken();
       if (!token) return;
       try {
-        const [categoriesData, brandsData] = await Promise.all([
-          apiGetAuth<{ categories: Array<{ _id: string; name: string; slug: string }> }>(
-            "/api/admin/categories",
-            token
-          ),
-          apiGetAuth<{ brands: Array<{ _id: string; name: string; slug: string }> }>("/api/admin/brands", token),
-        ]);
-        setCategories(categoriesData.categories);
-        setBrands(brandsData.brands);
-        if (categoriesData.categories.length > 0) {
-          setCategoryId(categoriesData.categories[0]._id);
+        const { categories: c, brands: b } = await fetchAdminTaxonomy(token);
+        setCategories(c);
+        setBrands(b);
+        if (c.length > 0) {
+          setCategoryId(c[0]._id);
         }
-        if (brandsData.brands.length > 0) {
-          setBrandId(brandsData.brands[0]._id);
+        if (b.length > 0) {
+          setBrandId(b[0]._id);
         }
       } catch {
         notify("Could not load categories or brands.", "error");
@@ -354,20 +349,14 @@ export default function AdminNewProductPage() {
           const token = getAuthToken();
           if (!token) return;
           try {
-            const [categoriesData, brandsData] = await Promise.all([
-              apiGetAuth<{ categories: Array<{ _id: string; name: string; slug: string }> }>(
-                "/api/admin/categories",
-                token
-              ),
-              apiGetAuth<{ brands: Array<{ _id: string; name: string; slug: string }> }>("/api/admin/brands", token),
-            ]);
-            setCategories(categoriesData.categories);
-            setBrands(brandsData.brands);
-            if (!categoryId && categoriesData.categories[0]?._id) {
-              setCategoryId(categoriesData.categories[0]._id);
+            const { categories: c, brands: b } = await fetchAdminTaxonomy(token);
+            setCategories(c);
+            setBrands(b);
+            if (!categoryId && c[0]?._id) {
+              setCategoryId(c[0]._id);
             }
-            if (!brandId && brandsData.brands[0]?._id) {
-              setBrandId(brandsData.brands[0]._id);
+            if (!brandId && b[0]?._id) {
+              setBrandId(b[0]._id);
             }
           } catch {
             notify("Could not refresh categories or brands.", "error");

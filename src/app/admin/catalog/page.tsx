@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { fetchAdminTaxonomy, invalidateAdminTaxonomyCache } from "@/lib/adminTaxonomy";
 import { apiDeleteAuth, apiGetAuth, apiPatchAuth, apiPostAuth } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
 import { Toast } from "@/components/admin/Toast";
@@ -51,13 +52,12 @@ export default function AdminCatalogPage() {
     }
 
     try {
-      const [categoriesData, brandsData, giftData] = await Promise.all([
-        apiGetAuth<{ categories: NamedEntity[] }>("/api/admin/categories", token),
-        apiGetAuth<{ brands: NamedEntity[] }>("/api/admin/brands", token),
+      const [taxonomy, giftData] = await Promise.all([
+        fetchAdminTaxonomy(token),
         apiGetAuth<{ giftOptions: GiftOption[] }>("/api/admin/gift-options", token),
       ]);
-      setCategories(categoriesData.categories);
-      setBrands(brandsData.brands);
+      setCategories(taxonomy.categories as NamedEntity[]);
+      setBrands(taxonomy.brands as NamedEntity[]);
       setGiftOptions(giftData.giftOptions);
     } catch {
       setMessage("Unable to load admin catalog data.");
@@ -78,6 +78,7 @@ export default function AdminCatalogPage() {
     await apiPostAuth("/api/admin/categories", { name: categoryName, slug: categorySlug }, token);
     setCategoryName("");
     setCategorySlug("");
+    invalidateAdminTaxonomyCache();
     await loadData();
     setMessage("Category created.");
     setToastTone("success");
@@ -90,6 +91,7 @@ export default function AdminCatalogPage() {
     await apiPostAuth("/api/admin/brands", { name: brandName, slug: brandSlug }, token);
     setBrandName("");
     setBrandSlug("");
+    invalidateAdminTaxonomyCache();
     await loadData();
     setMessage("Brand created.");
     setToastTone("success");
@@ -115,6 +117,9 @@ export default function AdminCatalogPage() {
     const token = getAuthToken();
     if (!token) return;
     await apiPatchAuth(`${path}/${id}`, { isActive: !current }, token);
+    if (path.includes("/categories") || path.includes("/brands")) {
+      invalidateAdminTaxonomyCache();
+    }
     await loadData();
     setMessage("Status updated.");
     setToastTone("success");
@@ -124,6 +129,9 @@ export default function AdminCatalogPage() {
     const token = getAuthToken();
     if (!token) return;
     await apiDeleteAuth(`${path}/${id}`, token);
+    if (path.includes("/categories") || path.includes("/brands")) {
+      invalidateAdminTaxonomyCache();
+    }
     await loadData();
     setMessage("Item deleted.");
     setToastTone("success");
@@ -134,6 +142,9 @@ export default function AdminCatalogPage() {
     if (!token) return;
     await apiPatchAuth(`${path}/${id}`, { name: editName, slug: editSlug }, token);
     setEditingEntityId("");
+    if (path.includes("/categories") || path.includes("/brands")) {
+      invalidateAdminTaxonomyCache();
+    }
     await loadData();
     setMessage("Item updated.");
     setToastTone("success");

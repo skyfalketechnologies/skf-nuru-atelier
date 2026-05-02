@@ -1,14 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { apiGetAuth, apiPatchAuth, apiPostAuth } from "@/lib/api";
+import { apiPatchAuth, apiPostAuth } from "@/lib/api";
+import { fetchAdminTaxonomy, invalidateAdminTaxonomyCache, type AdminTaxonomyItem } from "@/lib/adminTaxonomy";
 import { getAuthToken } from "@/lib/auth";
-
-type TaxonomyItem = {
-  _id: string;
-  name: string;
-  slug: string;
-};
 
 type TaxonomyManagerProps = {
   onTaxonomyUpdated?: () => void;
@@ -24,8 +19,8 @@ function createSlug(value: string) {
 }
 
 export function TaxonomyManager({ onTaxonomyUpdated }: TaxonomyManagerProps) {
-  const [categories, setCategories] = useState<TaxonomyItem[]>([]);
-  const [brands, setBrands] = useState<TaxonomyItem[]>([]);
+  const [categories, setCategories] = useState<AdminTaxonomyItem[]>([]);
+  const [brands, setBrands] = useState<AdminTaxonomyItem[]>([]);
   const [categoryName, setCategoryName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState("");
@@ -38,12 +33,9 @@ export function TaxonomyManager({ onTaxonomyUpdated }: TaxonomyManagerProps) {
     const token = getAuthToken();
     if (!token) return;
     try {
-      const [categoriesData, brandsData] = await Promise.all([
-        apiGetAuth<{ categories: TaxonomyItem[] }>("/api/admin/categories", token),
-        apiGetAuth<{ brands: TaxonomyItem[] }>("/api/admin/brands", token),
-      ]);
-      setCategories(categoriesData.categories);
-      setBrands(brandsData.brands);
+      const { categories: nextCategories, brands: nextBrands } = await fetchAdminTaxonomy(token);
+      setCategories(nextCategories);
+      setBrands(nextBrands);
       onTaxonomyUpdated?.();
     } catch {
       setStatus("Could not load categories/brands.");
@@ -66,6 +58,7 @@ export function TaxonomyManager({ onTaxonomyUpdated }: TaxonomyManagerProps) {
       );
       setCategoryName("");
       setStatus("Category added.");
+      invalidateAdminTaxonomyCache();
       await loadTaxonomy();
     } catch {
       setStatus("Failed to add category.");
@@ -84,6 +77,7 @@ export function TaxonomyManager({ onTaxonomyUpdated }: TaxonomyManagerProps) {
       );
       setBrandName("");
       setStatus("Brand added.");
+      invalidateAdminTaxonomyCache();
       await loadTaxonomy();
     } catch {
       setStatus("Failed to add brand.");
@@ -102,6 +96,7 @@ export function TaxonomyManager({ onTaxonomyUpdated }: TaxonomyManagerProps) {
       setEditingCategoryId("");
       setEditCategoryName("");
       setStatus("Category updated.");
+      invalidateAdminTaxonomyCache();
       await loadTaxonomy();
     } catch {
       setStatus("Failed to update category.");
@@ -120,6 +115,7 @@ export function TaxonomyManager({ onTaxonomyUpdated }: TaxonomyManagerProps) {
       setEditingBrandId("");
       setEditBrandName("");
       setStatus("Brand updated.");
+      invalidateAdminTaxonomyCache();
       await loadTaxonomy();
     } catch {
       setStatus("Failed to update brand.");

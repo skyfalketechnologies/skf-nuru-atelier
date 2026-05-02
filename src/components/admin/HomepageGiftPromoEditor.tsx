@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGetAuth, apiPatchAuth } from "@/lib/api";
+import {
+  fetchHomepageGiftPromoEditorData,
+  invalidateHomepageGiftPromoEditorCache,
+} from "@/lib/adminHomepageGiftPromo";
+import { apiPatchAuth } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
 import { Toast } from "@/components/admin/Toast";
 
@@ -18,6 +22,8 @@ type PromoState = {
   product: ProductSummary | null;
   discountPercent: number;
   isActive: boolean;
+  sectionKicker: string;
+  sectionDescription: string;
 };
 
 type CatalogProduct = {
@@ -49,22 +55,17 @@ export function HomepageGiftPromoEditor() {
     setError("");
     setLoading(true);
     try {
-      const [promoRes, prodRes] = await Promise.all([
-        apiGetAuth<{ promo: PromoState & { product?: ProductSummary | null } }>(
-          "/api/admin/homepage-gift-promo",
-          token
-        ),
-        apiGetAuth<{ products: CatalogProduct[] }>("/api/admin/products?limit=200&sort=name", token),
-      ]);
-      const p = promoRes.promo;
+      const { promo: p, products: prodList } = await fetchHomepageGiftPromoEditorData(token);
       setPromo({
         product: p.product ?? null,
         discountPercent: p.discountPercent ?? 20,
         isActive: p.isActive ?? false,
+        sectionKicker: typeof p.sectionKicker === "string" ? p.sectionKicker : "",
+        sectionDescription: typeof p.sectionDescription === "string" ? p.sectionDescription : "",
       });
       setSelectedProductId(p.product?._id ?? "");
       setDiscountInput(String(p.discountPercent ?? 20));
-      setProducts(prodRes.products.filter((x) => x._id));
+      setProducts(prodList);
     } catch {
       setError("Could not load homepage gift settings.");
     } finally {
@@ -78,7 +79,7 @@ export function HomepageGiftPromoEditor() {
 
   async function save() {
     const token = getAuthToken();
-    if (!token) return;
+    if (!token || !promo) return;
     const discountPercent = Math.min(99, Math.max(1, Math.floor(Number(discountInput) || 0)));
     if (!Number.isFinite(discountPercent) || discountPercent < 1) {
       setToastTone("error");
@@ -88,12 +89,21 @@ export function HomepageGiftPromoEditor() {
     setSaving(true);
     setError("");
     try {
-      const body: { productId: string | null; discountPercent: number; isActive: boolean } = {
+      const body: {
+        productId: string | null;
+        discountPercent: number;
+        isActive: boolean;
+        sectionKicker: string;
+        sectionDescription: string;
+      } = {
         productId: selectedProductId || null,
         discountPercent,
-        isActive: promo?.isActive ?? false,
+        isActive: promo.isActive,
+        sectionKicker: promo.sectionKicker,
+        sectionDescription: promo.sectionDescription,
       };
       await apiPatchAuth("/api/admin/homepage-gift-promo", body, token);
+      invalidateHomepageGiftPromoEditorCache();
       setToastTone("success");
       setToastMessage("Homepage gift promo saved.");
       await load();
@@ -124,10 +134,34 @@ export function HomepageGiftPromoEditor() {
       <h2 className="text-sm uppercase tracking-[0.14em] text-gold/80">Homepage — Our Gift For You</h2>
       <p className="mt-2 text-sm text-muted">
         Choose the product and discount shown in the storefront block. Checkout uses this discount automatically for
-        that SKU.
+        that SKU. Edit the section label and description shown above the offer on the homepage.
       </p>
 
       <div className="mt-5 space-y-4">
+        <label className="block text-xs text-muted">
+          Section label (kicker)
+          <input
+            type="text"
+            maxLength={120}
+            className="mt-1 w-full rounded-lg border border-gold/25 bg-black/50 px-3 py-2 text-sm text-foreground"
+            value={promo.sectionKicker}
+            onChange={(e) => setPromo({ ...promo, sectionKicker: e.target.value })}
+            placeholder="OUR GIFT FOR YOU (leave blank for default)"
+          />
+        </label>
+
+        <label className="block text-xs text-muted">
+          Section description
+          <textarea
+            rows={4}
+            maxLength={2000}
+            className="mt-1 w-full resize-y rounded-lg border border-gold/25 bg-black/50 px-3 py-2 text-sm text-foreground"
+            value={promo.sectionDescription}
+            onChange={(e) => setPromo({ ...promo, sectionDescription: e.target.value })}
+            placeholder="Short paragraph under the product name (leave blank for default copy)"
+          />
+        </label>
+
         <label className="block text-xs text-muted">
           Product
           <select

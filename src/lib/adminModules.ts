@@ -36,6 +36,13 @@ export const adminModules: AdminModule[] = [
     status: "live",
   },
   {
+    href: "/admin/reviews",
+    label: "Reviews",
+    description: "Customer ratings and comments across the catalog.",
+    group: "Commerce",
+    status: "live",
+  },
+  {
     href: "/admin/inventory",
     label: "Inventory",
     description: "Stock health, replenishment planning, and adjustments.",
